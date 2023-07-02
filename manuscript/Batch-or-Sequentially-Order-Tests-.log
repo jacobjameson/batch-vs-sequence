@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.7.2)  2 JUL 2023 14:23
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.7.2)  2 JUL 2023 15:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -868,10 +868,65 @@ Package: wrapfig 2003/01/31  v 3.6
 \@authorfigbox=\box127
 \@authorfigboxdim=\skip103
 \biofigadjskip=\skip104
+) (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/siunitx/siunitx.sty
+Package: siunitx 2023-06-12 v3.2.6 A comprehensive (SI) units package
+\l__siunitx_angle_tmp_dim=\dimen344
+\l__siunitx_angle_marker_box=\box128
+\l__siunitx_angle_unit_box=\box129
+\l__siunitx_compound_count_int=\count438
+\l__siunitx_number_exponent_fixed_int=\count439
+\l__siunitx_number_min_decimal_int=\count440
+\l__siunitx_number_min_integer_int=\count441
+\l__siunitx_number_round_precision_int=\count442
+\l__siunitx_number_lower_threshold_int=\count443
+\l__siunitx_number_upper_threshold_int=\count444
+\l__siunitx_number_group_first_int=\count445
+\l__siunitx_number_group_size_int=\count446
+\l__siunitx_number_group_minimum_int=\count447
+\l__siunitx_table_tmp_box=\box130
+\l__siunitx_table_tmp_dim=\dimen345
+\l__siunitx_table_column_width_dim=\dimen346
+\l__siunitx_table_integer_box=\box131
+\l__siunitx_table_decimal_box=\box132
+\l__siunitx_table_uncert_box=\box133
+\l__siunitx_table_before_box=\box134
+\l__siunitx_table_after_box=\box135
+\l__siunitx_table_before_dim=\dimen347
+\l__siunitx_table_carry_dim=\dimen348
+\l__siunitx_unit_tmp_int=\count448
+\l__siunitx_unit_position_int=\count449
+\l__siunitx_unit_total_int=\count450
+) (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/tablefootnote/tablefootnote.sty
+Package: tablefootnote 2014/01/26 v1.1c Table foot notes (HMM)
+(/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/xifthen/xifthen.sty
+Package: xifthen 2015/11/05 v1.4.0 Extended ifthen features
+(/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/ifmtarg/ifmtarg.sty
+Package: ifmtarg 2018/04/16 v1.2b check for an empty argument
+))) (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2021-09-01 v4.17 Multi-page Table package (DPC)
+\LTleft=\skip105
+\LTright=\skip106
+\LTpre=\skip107
+\LTpost=\skip108
+\LTchunksize=\count451
+\LTcapwidth=\dimen349
+\LT@head=\box136
+\LT@firsthead=\box137
+\LT@foot=\box138
+\LT@lastfoot=\box139
+\LT@gbox=\box140
+\LT@cols=\count452
+\LT@rows=\count453
+\c@LT@tables=\count454
+\c@LT@chunks=\count455
+\LT@p@ftn=\toks51
+) (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/threeparttable/threeparttable.sty
+Package: threeparttable 2003/06/13  v 3.0
+\@tempboxb=\box141
 ) (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2023-04-19 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count438
-\l__pdf_internal_box=\box128
+\l__color_backend_stack_int=\count456
+\l__pdf_internal_box=\box142
 )
 
 LaTeX Warning: Unused global option(s):
@@ -880,36 +935,36 @@ LaTeX Warning: Unused global option(s):
 (./Batch-or-Sequentially-Order-Tests-.aux)
 \openout1 = `Batch-or-Sequentially-Order-Tests-.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for LS1/stix/m/n on input line 19.
-LaTeX Font Info:    Trying to load font information for LS1+stix on input line 19.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for LS1/stix/m/n on input line 25.
+LaTeX Font Info:    Trying to load font information for LS1+stix on input line 25.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls1stix.fd
 File: ls1stix.fd 2015/04/17 v1.1.2-latex STIX LS1 font definitions
 )
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for LS2/stix/m/n on input line 19.
-LaTeX Font Info:    Trying to load font information for LS2+stix on input line 19.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for LS2/stix/m/n on input line 25.
+LaTeX Font Info:    Trying to load font information for LS2+stix on input line 25.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls2stix.fd
 File: ls2stix.fd 2015/04/17 v1.1.2-latex STIX LS2 font definitions
 )
-LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    ... okay on input line 25.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
@@ -920,9 +975,14 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: hyperref package is loaded.
 Package caption Info: listings package is loaded.
+Package caption Info: longtable package is loaded.
+(/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/caption/ltcaption.sty
+Package: ltcaption 2021/01/08 v1.4c longtable captions (AR)
+)
+Package caption Info: threeparttable package is loaded.
 Package caption Info: wrapfig package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring OFF on input line 19.
+Package hyperref Info: Link coloring OFF on input line 25.
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
 *geometry* verbose mode - [ preamble ] result:
@@ -959,51 +1019,46 @@ Package hyperref Info: Link coloring OFF on input line 19.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Info: Command `\dddot' is already robust on input line 19.
-LaTeX Info: Command `\ddddot' is already robust on input line 19.
-\c@lstlisting=\count439
-LaTeX Font Info:    Trying to load font information for LS1+stixscr on input line 69.
+LaTeX Info: Command `\dddot' is already robust on input line 25.
+LaTeX Info: Command `\ddddot' is already robust on input line 25.
+\c@lstlisting=\count457
+LaTeX Font Info:    Trying to load font information for LS1+stixscr on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls1stixscr.fd
 File: ls1stixscr.fd 2015/04/17 v1.1.2-latex STIX script LS1 font definitions
 )
-LaTeX Font Info:    Trying to load font information for LS2+stixex on input line 69.
+LaTeX Font Info:    Trying to load font information for LS2+stixex on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls2stixex.fd
 File: ls2stixex.fd 2015/04/17 v1.1.2-latex STIX extentions LS2 font definitions
 )
-LaTeX Font Info:    Trying to load font information for LS1+stixfrak on input line 69.
+LaTeX Font Info:    Trying to load font information for LS1+stixfrak on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls1stixfrak.fd
 File: ls1stixfrak.fd 2015/04/17 v1.1.2-latex STIX fraktur LS1 font definitions
 )
-LaTeX Font Info:    Trying to load font information for LS1+stixbb on input line 69.
+LaTeX Font Info:    Trying to load font information for LS1+stixbb on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls1stixbb.fd
 File: ls1stixbb.fd 2015/04/17 v1.1.2-latex STIX blackboard LS1 font definitions
 )
-LaTeX Font Info:    Trying to load font information for LS2+stixcal on input line 69.
+LaTeX Font Info:    Trying to load font information for LS2+stixcal on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls2stixcal.fd
 File: ls2stixcal.fd 2015/04/17 v1.1.2-latex STIX calligraphic LS2 font definitions
 )
-LaTeX Font Info:    Trying to load font information for LS1+stixsf on input line 69.
+LaTeX Font Info:    Trying to load font information for LS1+stixsf on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls1stixsf.fd
 File: ls1stixsf.fd 2015/04/17 v1.1.2-latex STIX sans-serif LS1 font definitions
 )
-LaTeX Font Info:    Trying to load font information for LS2+stixtt on input line 69.
+LaTeX Font Info:    Trying to load font information for LS2+stixtt on input line 66.
 (/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/stix/ls2stixtt.fd
 File: ls2stixtt.fd 2015/04/17 v1.1.2-latex STIX typewriter LS2 font definitions
 )
-Overfull \hbox (346.99213pt too wide) in paragraph at lines 69--69
+Overfull \vbox (3.8591pt too high) detected at line 66
+ []
+
+
+Overfull \hbox (346.99213pt too wide) in paragraph at lines 66--66
 [][] | || []|[][] 
  []
 
-LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 69.
-LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 84.
-(/Users/jacob/Library/TinyTeX/texmf-dist/tex/latex/base/t1cmtt.fd
-File: t1cmtt.fd 2023/04/13 v2.5m Standard LaTeX font definitions
-)
-<Batch-or-Sequentially-Order-Tests-_files/figure-latex/plot-ref-1.pdf, id=4, 469.755pt x 325.215pt>
-File: Batch-or-Sequentially-Order-Tests-_files/figure-latex/plot-ref-1.pdf Graphic file (type pdf)
-<use Batch-or-Sequentially-Order-Tests-_files/figure-latex/plot-ref-1.pdf>
-Package pdftex.def Info: Batch-or-Sequentially-Order-Tests-_files/figure-latex/plot-ref-1.pdf  used on input line 92.
-(pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
+LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 66.
 
 Overfull \vbox (6.46347pt too high) has occurred while \output is active []
 
@@ -1011,25 +1066,64 @@ Overfull \vbox (6.46347pt too high) has occurred while \output is active []
 
 \openout3 = `Batch-or-Sequentially-Order-Tests-.pag'.
 
-] [2 <./Batch-or-Sequentially-Order-Tests-_files/figure-latex/plot-ref-1.pdf>] (./Batch-or-Sequentially-Order-Tests-.bbl [3]) [4] (./Batch-or-Sequentially-Order-Tests-.aux)
+]
+Underfull \hbox (badness 2050) in paragraph at lines 95--96
+\T1/stix/m/n/10.03749 tremia, Platelet Dis-or-ders, Ane-mia, Hypo-glycemia, Hyper-ten-sion, Hypoten-sion,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 119--119
+[]|\T1/stix/m/n/10.03749 Falls, Motor Vehi-cle Crashes,
+ []
+
+
+Underfull \hbox (badness 1215) in paragraph at lines 123--124
+[]|\T1/stix/m/n/10.03749 Chills, Diaphore-sis, Fever, Night Sweats, Diaphoretic, Diapohre-sis, Hoarse-ness,
+ []
+
+
+Underfull \hbox (badness 1043) in paragraph at lines 133--134
+\T1/stix/m/n/10.03749 tion Admin-ist, Med Refill, Med-i-ca-tion Visit, Pain Man-age-ment, Blood Prod-uct
+ []
+
+
+Underfull \hbox (badness 6927) in paragraph at lines 137--138
+[]|\T1/stix/m/n/10.03749 Dehydration, Fisula Eval-u-a-tion, Follow-Up, Ill-ness, Let-ter for School/-Work,
+ []
+
+
+Underfull \hbox (badness 1648) in paragraph at lines 137--138
+\T1/stix/m/n/10.03749 Injury, Xeros-to-mia, Prostate Check, Suture / Sta-ple Removal, Well-ness, Voice
+ []
+
+
+Overfull \hbox (1.38895pt too wide) in alignment at lines 88--159
+ [] [] 
+ []
+
+[2
+
+] [3] [4]
+No file Batch-or-Sequentially-Order-Tests-.bbl.
+[5] (./Batch-or-Sequentially-Order-Tests-.aux)
  ***********
 LaTeX2e <2023-06-01> patch level 1
 L3 programming layer <2023-06-30>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 20053 strings out of 477197
- 301195 string characters out of 5813096
- 1938244 words of memory out of 5000000
- 40699 multiletter control sequences out of 15000+600000
- 647549 words of font info for 138 fonts, out of 8000000 for 9000
+ 22933 strings out of 477197
+ 387690 string characters out of 5813096
+ 1971244 words of memory out of 5000000
+ 43567 multiletter control sequences out of 15000+600000
+ 642012 words of font info for 136 fonts, out of 8000000 for 9000
  40 hyphenation exceptions out of 8191
- 90i,10n,93p,1243b,581s stack positions out of 10000i,1000n,20000p,200000b,200000s
- </Users/jacob/Library/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1000.600pk></Users/jacob/Library/TinyTeX/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></Users/jacob/Library/TinyTeX/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></Users/jacob/Library/TinyTeX/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb>
-Output written on Batch-or-Sequentially-Order-Tests-.pdf (4 pages, 145387 bytes).
+ 90i,10n,93p,1350b,999s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</Users/jacob/Library/TinyTeX/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></Users/jacob/Library/TinyTeX/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></Users/jacob/Library/TinyTeX/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb>
+Output written on Batch-or-Sequentially-Order-Tests-.pdf (5 pages, 134872 bytes).
 PDF statistics:
- 176 PDF objects out of 1000 (max. 8388607)
- 97 compressed objects within 1 object stream
- 24 named destinations out of 1000 (max. 500000)
- 86 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 87 PDF objects out of 1000 (max. 8388607)
+ 73 compressed objects within 1 object stream
+ 19 named destinations out of 1000 (max. 500000)
+ 65 words of extra memory for PDF output out of 10000 (max. 10000000)
 
