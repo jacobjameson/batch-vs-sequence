@@ -1,0 +1,498 @@
+#=========================================================================
+# Purpose: Main R file for Preparing/Cleaning Data
+# Author: Jacob Jameson 
+#=========================================================================
+rm(list = ls()) 
+
+library(tidyverse)
+library(stringr)
+
+#=========================================================================
+# Determine test times
+#=========================================================================
+
+path <- '~/Dropbox/Batch vs sequential testing/Data/'
+
+df <- read.csv(paste0(path, 'deidentified_FINAL.csv'))
+
+test_columns = c("US_PERF", "NON_CON_CT_PERF", "CON_CT_PERF", 
+                 "LAB_PERF", "XR_PERF")
+
+test_time_columns = c("US_ORDER_DTTM", "NON_CON_CT_ORDER_DTTM",
+                      "CON_CT_ORDER_DTTM", "LAB_ORDER_DTTM", 
+                      "XR_ORDER_DTTM")
+
+colnames(df)[colnames(df) == "PLAIN_XRAY"] = "XR_PERF"
+colnames(df)[colnames(df) == "US_ORDER_DTTM_REL"] ="US_ORDER_DTTM"
+colnames(df)[colnames(df) == "CT_WITHOUT_CONTR_ORDER_DTTM_REL"] = "NON_CON_CT_ORDER_DTTM"
+colnames(df)[colnames(df) == "CT_WITH_CONTR_ORDER_DTTM_REL"] ="CON_CT_ORDER_DTTM"
+colnames(df)[colnames(df) == "LAB_ORDER_DTTM_REL"] ="LAB_ORDER_DTTM"
+colnames(df)[colnames(df) == "PLAIN_XRAY_ORDER_DTTM_REL"] ="XR_ORDER_DTTM"
+
+df$CT_PERF = ifelse(df$NON_CON_CT_PERF=='Y' | 
+                      df$CON_CT_PERF=='Y', 1, 0)
+
+df$ESI = as.character(df$ESI)
+
+for (i in test_columns){
+  df[[i]] = ifelse(df[[i]] =='Y', 1, 0) 
+}
+
+df$nEDTests = rowSums(df[test_columns])
+
+df[append(test_columns, "nEDTests")]
+
+
+for (i in test_time_columns){
+  newcol_hr = paste0(str_remove(i, "_ORDER_DTTM"),"_HR")
+  newcol_min = paste0(str_remove(i, "_ORDER_DTTM"),"_MIN")
+  df[[newcol_min]] = as.numeric(str_sub(df[[i]], - 2, - 1))
+  df[[newcol_hr]] = as.numeric(str_sub(df[[i]], 0, 5))
+  
+  tmp = df[[newcol_hr]]*60 + df[[newcol_min]]
+  df[[i]] = tmp
+}
+
+#=========================================================================
+# Determine batching
+#   - criteria: ordered within 5 minutes of each other
+#               first tests ordered were in a batch
+#=========================================================================
+
+# Determine which was the first test ordered -----------------------------
+
+df$lowest_column <- apply(df[test_time_columns], 1, function(x) {
+  colnames(df[test_time_columns])[which.min(x)]
+})
+
+df$lowest_column <- as.character(gsub("", "", df$lowest_column))
+
+df$batch <- ''
+df$batched.time.interval <- ''
+
+for (i in 1:nrow(df)){
+  
+  lowest <- df$lowest_column[i]
+  first_time <- df[[lowest]][i]
+  batched <- ''
+  batched.time.interval <- ''
+  
+  if (!is.na(df$lowest_column[i])) {
+    
+    if (!is.na(df$US_ORDER_DTTM[i]) && 
+        df$US_ORDER_DTTM[i] - first_time <= 1){
+      
+      batched <- paste0(batched, ',US')
+      batched.time.interval <- paste0(
+        batched.time.interval, ',', df$US_ORDER_DTTM[i] - first_time)
+    }
+    if (!is.na(df$LAB_ORDER_DTTM[i]) && 
+        df$LAB_ORDER_DTTM[i] - first_time <= 1){
+      
+      batched <- paste0(batched, ',LAB')
+      batched.time.interval <- paste0(
+        batched.time.interval, ',', df$LAB_ORDER_DTTM[i] - first_time)
+    }
+    if (!is.na(df$NON_CON_CT_ORDER_DTTM[i]) && 
+        df$NON_CON_CT_ORDER_DTTM[i] - first_time <= 1){
+      
+      batched <- paste0(batched, ',NCT')
+      batched.time.interval <- paste0(
+        batched.time.interval, ',', df$NON_CON_CT_ORDER_DTTM[i] - first_time)
+    }
+    if (!is.na(df$CON_CT_ORDER_DTTM[i]) && 
+        df$CON_CT_ORDER_DTTM[i] - first_time <= 1){
+      
+      batched <- paste0(batched, ',CT')
+      batched.time.interval <- paste0(
+        batched.time.interval, ',', df$CON_CT_ORDER_DTTM[i] - first_time)
+    }
+    if (!is.na(df$XR_ORDER_DTTM[i]) && 
+        df$XR_ORDER_DTTM[i] - first_time <= 1){
+      
+      batched <- paste0(batched, ',XR')
+      batched.time.interval <- paste0(
+        batched.time.interval, ',', df$XR_ORDER_DTTM[i] - first_time)
+    }
+  }
+  df$batch[i] <- batched
+  df$batched.time.interval[i] <- batched.time.interval
+}
+
+#=========================================================================
+# Lab-Image Batch --------------------------------------------------------
+#=========================================================================
+
+df$lab_image_batch <- ifelse(
+  grepl("LAB", df$batch) & 
+    grepl("(XR|NCT|CT|US)", df$batch, ignore.case = TRUE), 1, 0
+)
+#=========================================================================
+# Image-Image Batch ------------------------------------------------------
+#=========================================================================
+
+df$image_image_batch <- ifelse(
+  rowSums(sapply(c("NCT", "CT", "XR", "US"),
+                 function(x) grepl(x, df$batch, ignore.case = TRUE))) >= 2, 1, 0
+)
+
+df$imaging <- ifelse(
+  df$XR_PERF == 1 | 
+    df$CON_CT_PERF == 1 | 
+    df$NON_CON_CT_PERF == 1 |
+    df$US_PERF == 1, 1, 0
+)
+
+#=========================================================================
+# Any Batch --------------------------------------------------------------
+#=========================================================================
+
+df$any.batch <- ifelse(
+  df$lab_image_batch == 1 | df$image_image_batch == 1, 1, 0
+)
+
+#=========================================================================
+# Clean Vars -------------------------------------------------------------
+#=========================================================================
+
+df$PATIENT_RACE <- str_to_lower(df$PATIENT_RACE)
+
+df <- df %>%
+  mutate(race = case_when(
+    grepl('black', PATIENT_RACE, fixed = TRUE) ~ "black",
+    grepl('african', PATIENT_RACE, fixed = TRUE) ~ "black",
+    grepl('asian', PATIENT_RACE, fixed = TRUE) ~ "asian",
+    grepl('pacific islander', PATIENT_RACE, fixed = TRUE) ~ "asian",
+    grepl('native', PATIENT_RACE, fixed = TRUE)~ "native",
+    grepl('samoan', PATIENT_RACE, fixed = TRUE) ~ "other",
+    grepl('guamanian or chamorro', PATIENT_RACE, fixed = TRUE) ~ "other",
+    grepl('white', PATIENT_RACE, fixed = TRUE) ~ "white",
+    grepl('unknown', PATIENT_RACE, fixed = TRUE) ~ "unknown",
+    grepl('choose not to disclose', PATIENT_RACE, fixed = TRUE) ~ "unknown",
+    grepl('unable to provide', PATIENT_RACE, fixed = TRUE) ~ "unknown",
+    grepl('other', PATIENT_RACE, fixed = TRUE) ~ "other",
+    grepl('', PATIENT_RACE, fixed = TRUE) ~ "unknown",
+    TRUE ~ PATIENT_RACE))
+
+#=========================================================================
+# Clean Chief Complaint --------------------------------------------------
+#=========================================================================
+
+complaints <- list(
+  "Abdominal Complaints" = 
+    c('Abdominal Cramping', 'Abdominal Distention', 'Dyspepsia',
+      'Abdominal Pain', 'Ascites', 'Hernia', 
+      'Abdominal Aortic Aneurysm', 'Abdominal Injury', "Pancreatitis",
+      'Umbilical Hernia'),
+  'Abnormal Test Results' = 
+    c('Abnormal Lab', 'Abnormal Potassium', 'Abnormal Calcium', 
+      'ECG Changes', 'Abnormal ECG', 'Abnormal Test Result', 
+      'Blood Infection', 'Acute Renal Failure', 'Hypocalcemia',
+      'Chronic Renal Failure', 'Pulmonary Embolism', 'Abnormal X-ray', 
+      'Hypoglycemic Unawareness', 'Elevated Blood Pressure', 
+      'Abnormal Sodium', 'Hyperglycemia', 'Hyponatremia', 
+      'Platelet Disorders', 'Anemia', 'Hypoglycemia', 'Hypertension', 
+      'Hypotension', 'Abnormal Chest Imaging', 'Abnormal Oximetry', 
+      'Abnormal Stress Test', 'Blood Sugar Problem',
+      'Hypocalcemia', 'Hyponatremia'),
+  'Allergic Reaction' = 
+    c('Allergic Reaction', 'Anaphylaxis'),
+  'Back or Flank Pain' = 
+    c('Back Pain', 'Back Problem', 'Flank Pain', 
+      'Sciatica', 'Back Injury', 'Disc Disorder'),
+  'Breast Complaints' = 
+    c('Breast Mass', 'Breast Pain', 'Breast Problem', 'Breast Discharge',
+      'Breast Cancer', 'Breast Discharge', 'Breast Inflammation'),
+  'Cardiac Arrhythmias' = 
+    c('Atrial Fibrillation', 'Atrial Flutter', 'Cardiac Valve Problem',
+      'Bradycardia', 'Irregular Heart Beat', 'Palpitations', 'POTS', 
+      'Ventricular Tachycardia','Rapid Heart Rate', 'Heart Problem', 
+      'Cardiac Arrest', 'Congestive Heart Failure', 'Circulatory Problem',  
+      "Transient Ischemic Attack", 'Ventricular Tachycardia'),
+  'Chest Pain' = 
+    c('Chest Injury', 'Chest Pain', 'Chest Wall Pain', 'Angina',
+      'Collarbone Injury', 'Rib Injury', 'Heart Pain'),
+  'Dizziness/Lightheadedness/Syncope' = 
+    c('Dizziness', 'Near Syncope', 'Syncope', 'Vertigo', 'Spells',
+      'Hypotension', 'Paroxysmal Positional Vertigo', 
+      'Paroxysmal Positional Vertig'),
+  'Ear Complaints' = 
+    c('Cerumen Impaction', 'Ear Drainage', 'Ear Fullness',
+      'Ear Laceration', 'Ear Problem', 'Earache',
+      'Hearing Problem', 'Tinnitus', 'Ear Injury', 'Hearing Loss',
+      'Nasal Trauma'),
+  'Epistaxis' = 
+    c('Epistaxis', 'Epistaxis (Nose Bleed)', 'Nose Problem'),
+  'Exposures, Bites, and Envenomations' =
+    c('Animal Bite', 'Body Fluid Exposure', 'Chemical Exposure', 
+      'Poisoning', 'Exposure to STD', 'Insect Bite', 'Smoke Inhalation', 
+      'Radiation', 'Snake Bite', 'Toxic Inhalation'),
+  'Extremity Complaints' = 
+    c('Ankle Injury', 'Ankle Pain', 'Arm Injury', 'Arm Pain', 
+      'Cold Extremity', 'Arm Swelling', 'Arthritis', 'Elbow Injury', 
+      'Elbow Pain', 'Pseudogout', 'Extremity Pain', 'Extremity Weakness', 
+      'Finger Injury', 'Hip Injury', 'Extremity Weakness', 
+      'Finger Injury', 'Finger Pain', 'Dislocation',
+      'Foot Infection', 'Foot Injury', 'Foot Numbness', 'Foot Pain',
+      'Foot Swelling', 'Foot Ulcer', 'Foot Wound Check', 'Hand Injury',
+      'Hand Pain', 'Hip Pain', 'Joint Pain', 'Joint Swelling', 
+      'Knee Injury', 'Knee Pain', 'Knee Problem', 'Leg Injury', 
+      'Leg Pain', 'Leg Swelling', 'Lower Extremity Issue', 
+      'Pain in Limb', 'Shoulder Injury', 'Shoulder Pain', 'Toe Injury', 
+      'Upper Extremity Issue', 'Wrist Injury',
+      'Wrist Pain', 'Hand Problem', 'Leg Cramps', 'Arm Problem',
+      'Foot Problem', 'Pain In Limb', 'Toe Pain', 'Hand Burn',
+      'Foot Burn', 'Neck Injury', 'Leg Problem', 'Deep Vein Thrombosis',
+      "Varicose Veins",  "Ingrown Toenail", 'Hip Injury', 'Wound Care', 
+      'Venous Thromboembolic Diseas'),
+  'Eye Complaints' = 
+    c('Blurred Vision', 'Decreased Visual Acuity', 'Diplopia', 
+      'Detached Retina', 'Eye Drainage', 'Eye Exposure', 'Eye Pain', 
+      'Eye Problem', 'Eye Swelling', 'Eye Trauma', 'Foreign Body Eye',
+      'Flashes/Light', 'Loss of Vision', 'Red Eye', 'Visual Field Change', 
+      'Eyelid Problem', 'Itchy Eye', 'Eye Exam', 'Burning Eyes', 
+      'Eye Twitching', "Eyelid/brow Lift Evaluation",
+      'Strabismus', 'Glaucoma',  "Spots/Floaters"),
+  'Falls, Motor Vehicle Crashes, Assaults, and Trauma' =
+    c('Assault Victim', 'Concussion', 'Facial Injury', 'Fall', 
+      'Nasal Trauma', 'Head Injury', 'Head Laceration', 
+      'Motor Vehicle Crash', 'Puncture Wound', 
+      'Sexual Assault', 'Trauma', 'Domestic Violence', 'Gun Shot Wound',
+      'Work Related Injury', 'Motorcycle Crash', 'Injury', 
+      'Bicycle Accident', 'Near Drowning', 'Lip Laceration'),
+  'Fatigue and Weakness' =
+    c('Difficulty Walking', 'Fatigue', 'Gait Problem', 
+      'Weakness-Generalized',
+      'Chronic Fatique', 'Weakness - Generalized'),
+  'Fevers, Sweats or Chills' =
+    c('Chills', 'Diaphoresis', 'Fever', 'Night Sweats', 'Diaphoretic', 
+      'Diapohresis', 'Hoarseness', 'Laryngitis'),
+  'Foreign Body' =
+    c('Food Bolus', 'Foreign Body', 'Foreign Body in Ear',
+      'Foreign Body in Skin', 'Foreign Body in Vagina',
+      'Swallowed Foreign Body', 'Foreign Body in Nose', 
+      'Foreign Body', 'FB eye', 'Foreign Body in Rectum'),
+  'Gastrointestinal Issues' =
+    c('Anal Fissure', 'Black or Bloody Stool', 'Constipation', 'GERD', 
+      'Anal Fistula', 'Diarrhea', 'Dysphagia', 'Fecal Impaction',
+      'Fistula Follow Up', 'GIbleeding', 'GI Problem', 'Hemorrhoids', 
+      'Morning Sickness', 'Nausea', 'Ostomy Care', 'Rectal Bleeding',
+      'Rectal Pain', 'Vomiting', 'Vomiting Blood', 
+      'Vomiting During Pregnancy',
+      'GI Bleeding', 'Fecal Incontinence',
+      'Bloated', 'Hematochezia', 'Urine Leakage', 'Heartburn',
+      'Rectal Discharge', 'Urolithiasis', "Ulcerative Colitis",
+      "Irritable Bowel Syndrome", "Rectal Prolapse","Fistula Evaluation",
+      "Rectal Problems", 'Perianal Abscess', 'Fisula Evaluation', 
+      'Stoma Dysfunction'),
+  'Genital Complaints' =
+    c('Groin Burn', 'Groin Pain', 'Groin Swelling', 'Inguinal Hernia', 
+      'Menstrual Problem', 'Pelvic Pain', 'Penis Pain', 'Priapism', 
+      'Testicle Pain', 'Menorrhagia',
+      'Vaginal Bleed', 'Vaginal Bleeding', 'Vaginal Itching', 
+      "Bartholin's Cyst", 'Genital Warts', 'Groin Injury', 
+      'Vaginal Bleeding - Pregnant', 
+      'Vag Bleed Pregnant', 'Female Genital Issue', 'Penis Injury',
+      'Vaginal Discharge', 'Vaginal Pain', 'Erectile Dysfunction',
+      'Vaginal Prolapse', 'Urethral Stricture', 'Penile Discharge',
+      'Menorrhagia', "Gynecologic Exam", "Menstrual Problem", 
+      "Vaginitis/Bacterial Vaginosis",
+      'Ovarian Cyst', 'Vaginitis/Bacterial Vaginosi'),
+  'Medical Device or Treatment Issue' =
+    c('Cast Problem', 'Device Check', 'Dressing Change', 'Feeding Tube', 
+      'AICD Problem', 'Insulin Pump Visit', 'Gastrostomy Tube Change', 
+      'Medication Reaction', 'Shunt', 'Appliance Removal', 'Tube Problem', 
+      'Urinary Catheter Change', 'Vascular Access Problem', 
+      'Enteral Nutrition Evaluation', 'Device Malfunction', 
+      'Pacemaker Problem', 
+      'Removal / Exchange Catheter', 'Drain Removal', 
+      'Outpatient Infusion', 
+      'Treatment', 'Heart Assist Device', 'Stoma Dysfunction', 
+      'Tracheostomy Tube Change',
+      'Ureteral Stent Exchange'),
+  'Medication Request' =
+    c('Immunizations', 'Infusion/Injection Administration', 
+      'IV Medication',  'Infusion/ Injection Administ', 'Med Refill',
+      'Medication Visit', 
+      'Pain Management', 'Blood Product Administration', 'Labs Only', 
+      'Tetanus (Td & Tdap)', 'Wound Care'),
+  'Neurological Issue' =
+    c('Altered Mental Status', 'Cognitive Concerns', 'Facial Droop',
+      'Pre Syncope', 'Focal Weakness', 'Headache', 'Memory Loss', 
+      'Migraine', 'Dementia', 'Dysphasia',
+      'Neuro Problem', 'Numbness', 'Paralysis', 'Seizures',
+      'Slurred Speech', 'Spasms', 'Stroke Like Symptoms', 'Tingling',
+      'Tremors', 'Trigeminal Neuralgia', 'Unable to Speak', 
+      'Seizure Disorder', 'Insomnia', "Parkinson's Disease",
+      'Loss of Consciousness', 'Neuropathy', 'Ataxia', 'Unable to speak',
+      'Peripheral Neuropathy',
+      'Stroke', 'Cerebrovascular Accident', 'Speech Problem', 
+      'Acute Neurological Problem',
+      'Flashes, Light', 'Unresponsive', "Multiple Sclerosis", 
+      "Parkinson's Disease",
+      "Febrile Seizure", 'Paresthesia', 'Peripheral Neuropathy', 
+      'Hydrocephalus',
+      'Spasticity', 'Neuroendocrine Tumor'),
+  'Other' =
+    c('Dehydration', 'Fisula Evaluation', 'Follow-Up', 'Illness', 
+      'Letter for School/Work', 'Aneurysm',
+      'Lung Eval', 'Error', 'Mass', 'Oral Swelling', 'Other', 
+      'Advice Only', 'Deformity', 'Electric Shock',
+      'Personal Problem', 'Shaking', 'Swelling', 'Swollen Glands', 
+      'Adenopathy', 'Adrenal Problem',
+      'Thrombophilia', 'Weight Gain', 'Weight Loss', 'Hiccups', '', 
+      'Chemo Related Symptoms', 'Hot Flashes',
+      'Follow-up', 'Non Healing Wound', '(Other)', 'Mouth Injury', 
+      'Xerostomia', 'Prostate Check',
+      'Suture / Staple Removal', 'Wellness', 'Voice Changes', 
+      'Vital Sign Check', 'Coagulation Disorder',
+      'Cold Exposure', 'Consult', 'Dental Problem', 
+      'Tetanus (Td & Tdap)', "Infusion/ Injection Administ",
+      "Tracheostomy Tube Change", 'Medical Information', 
+      'Neutropenic Fever', 'Infection',
+      'Leukemia',"Heat Exposure", "Poor Appetite", 'Gingivitis',
+      "Pre-op Exam",
+      'gingivitis', "Loss of appetite", "Failure To Thrive", 
+      'Referral', 'Lymphoma',
+      "Hot Flashes", 'Neutropenia', 'Radiation', 'Ingestion', 
+      "TB Test", 'Fussy',
+      'Lupus', 'Toxic Inhalation', 'Lung Screening', 
+      'Leakage/Loss of Fluid',
+      'Liver Eval', 'Hepatic Cancer', 'Lung Mass', 
+      'Venous Thromboembolic Disease',
+      'Insulin Pump Visit', 'Preventive Visit', 
+      'Avulsion', 'Peripheral Edema',
+      'Hypoglycemic Unawareness', 'Immobility', 
+      'Giant Cell Arteritis', 'Polydipsia',
+      'Platelet Disorders', 'Post-procedure', 'Lung Follow-up', 
+      'Poisoning',
+      'Injections', 'POTS', "Insulin Reaction", 
+      'Liver Transplant', 'Labs Only'),
+  'Other Pain' =
+    c('Dental Pain', 'Facial Pain', 'Generalized Body Aches', 
+      'Myalgia', 'Dental Injury',
+      'Jaw Pain', 'Muscle Pain', 'Neck Pain', 'Pain', 
+      'Sickle Cell Pain Crisis', 'Paresthesia',
+      'Torticollis', 'Chronic Pain', 'Cancer Pain', 
+      'Incisional Pain', 'Bone Pain',
+      'Tailbone Pain', 'Gout', "Muscle pain/Weakness", 'Pseudogout'),
+  'Post-Op Issue' =
+    c('Post-Op', 'Post-Procedure', 'Post-Op Problem', 'Post-op',
+      'Post-Op Issue', 'Wound Dehiscence', 'Post-op Problems',
+      "Post-op Problem"),
+  'Psychiatric Complaints' =
+    c('Anxiety', 'Auditory Hallucinations', 'Depression', 'Panic Attack',
+      'Homicidal', 'PTSD (Post-Traumatic Stress', 'Delusional', 'Fussy',
+      'Paranoia', 'Suicide Attempt', 'Hallucinations', 'Manic Behavior',
+      'Eating Disorder', 'Suicidal', 'Agitation', 'Psychiatric Evaluation',
+      'Aggressive Behavior', 'Mental Health Problem', 
+      'Inappropriate Words'),
+  'Shortness of Breath' =
+    c('Airway Obstruction', 'Aspiration', 'Pain With Breathing', 
+      'Near Drowning',
+      'Respiratory Distress', 'Shortness of Breath', 'Wheezing',
+      'Increased Work Of Breathing',
+      'Difficulty Breathing', 'Choking', "Oxygen Dependence",
+      'Hyperventilating', 'Orthopnea'),
+  'Skin Complaints' =
+    c('Abrasion','Abscess', 'Bleeding/Bruising', 'Blister',
+      'Angioedema', 'Lip Laceration',
+      'Burn', 'Cellulitis', 'Cyst', 'Drainage from Incision', 
+      'Disturb of Skin Sens',
+      'Edema', 'Extremity Laceration', 'Facial Burn', 'Cyanosis',
+      'Impetigo', 'Facial Laceration', 'Facial Swelling',
+      'Finger Laceration', 'Leg Rash',
+      'Herpes Zoster', 'Hives', 'Itching', 'Jaundice', 
+      'Diabetic Ulcer', 'Diabetic Wound',
+      'Laceration', 'Mouth Lesions', 'Non-Healing Wound', 'Rash', 
+      'Recurrent Skin Infections', 'Skin Problem', 'Sore', 'Scabies',
+      'Suture/Staple Removal', 'Wound Check', 'Wound Infection',
+      'Lesion', 'Skin Check', 'Minor Skin Infection', 'Skin Ulcer',
+      'Skin Discoloration', 'Sunburn', "Head Lice", 'Scabies',
+      "Fungal Infection", "Leg Rash", 'Impetigo'),
+  'Substance Abuse Issues' =
+    c('Alcohol Intoxication', 'Alcohol Problem', 'Withdrawal',
+      'Drug Overdose', 'Drug / Alcohol Dependency', 'Addiction Problem',
+      'Addiction Assessment', 'Delirium Tremens (DTS)'),
+  'Upper Respiratory Symptoms' =
+    c('Congestion', 'Cough', 'Coughing Up Blood', 
+      'Flu Symptoms', 'Enlarged Tonsils', 'Peritonsillar Abscess',
+      'Nasal Congestion', 'Sinus Symptoms', 'Sinusitis',
+      'Sore Throat', 'Hoarseness',
+      'Throat Problem', 'Upper Respiratory Infection', 
+      'Influenza', 'Laryngitis',
+      'Respiratory Arrest', 'Pneumonia', 'Pleural Effusion', 'Asthma',
+      'Croup', 'URI', 'Peritonsillar Abscess'),
+  'Pregnancy Related' = 
+    c("Pregnancy Problem", "Miscarriage", "Contractions", 
+      'Ectopic Pregnancy',
+      'Laboring',"Possible Pregnancy", "Pregnancy Related"), 
+  'Renal' = 
+    c('Av Fistula', 'Kidney Transplant', 'Elevated Serum Creatinine', 
+      'End-Stage Liver Disease', "Hemodialysis Access", 'Nephritis',
+      'Ureteral Stent Exchange'),
+  'Urinary Complaints' =
+    c('Bladder Problem', 'Blood in Urine', 'Cystitis',
+      'Difficulty Urinating',
+      'Dysuria', 'Gross Hematuria', 'Painful Urination',
+      'Urinary Frequency', 'Urinary Symptom',
+      'Urinary Incontinence', 'Urinary Problem', 
+      'Urinary Retention', 'Slowing Urinary Stream',
+      'Urinary Tract Infection', 'Urinary Urgency', 
+      'Voiding Dysfunction',"Hesitancy Urinary")
+  )
+
+
+for (i in seq(1,length(complaints))){
+  name <- names(complaints[i])
+  complaint <- complaints[[i]]
+  
+  df$CHIEF_COMPLAINT <- ifelse(
+    df$CHIEF_COMPLAINT %in% complaint, name, df$CHIEF_COMPLAINT
+  )
+}
+
+#=========================================================================
+# Categorize Vital Signs -------------------------------------------------
+#=========================================================================
+
+df$tachycardic <- ifelse(
+  is.na(df$TRIAGE_PULSE) == F & df$TRIAGE_PULSE > 100, 1, 0
+)
+df$tachypneic <- ifelse(
+  is.na(df$TRIAGE_RR)  == F  & df$TRIAGE_RR > 20, 1, 0
+)
+df$febrile <- ifelse(
+  is.na(df$TRIAGE_TEMP)  == F  & df$TRIAGE_TEMP > 38, 1, 0
+)
+df$hypotensive <- ifelse(
+  is.na(df$TRIAGE_SBP)  == F  & df$TRIAGE_SBP < 90, 1, 0
+)
+
+#=========================================================================
+# Create Final Dataset ---------------------------------------------------
+#=========================================================================
+
+final <- df %>%
+  mutate(RTN_72_HR = ifelse(RTN_72_HR == 'Y', 1, 0),
+         RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0))
+
+final$age_groups <- cut(final$ARRIVAL_AGE_DI, 
+                        c(-Inf, 20, 45, 65, Inf),
+                        labels = c("<20", "20-45", "45-65", "65+"))
+
+final$admit = ifelse(final$ED_DISPOSITION == 'Admit', 1, 0)
+final$discharge = ifelse(final$ED_DISPOSITION == 'Discharge', 1, 0)
+final$observation = ifelse(final$ED_DISPOSITION == 'Observation', 1, 0)
+
+final <- final %>%
+  mutate(dispo = case_when(
+    admit == 1 ~ 'admit',
+    discharge == 1 ~ 'discharge',
+    observation == 1 ~ 'observeration',
+    TRUE ~ 'other')) 
+
+
+rm(list = setdiff(ls(), "final"))
+
+#=========================================================================
