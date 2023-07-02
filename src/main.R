@@ -477,10 +477,6 @@ final <- df %>%
   mutate(RTN_72_HR = ifelse(RTN_72_HR == 'Y', 1, 0),
          RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0))
 
-final$age_groups <- cut(final$ARRIVAL_AGE_DI, 
-                        c(-Inf, 20, 45, 65, Inf),
-                        labels = c("<20", "20-45", "45-65", "65+"))
-
 final$admit = ifelse(final$ED_DISPOSITION == 'Admit', 1, 0)
 final$discharge = ifelse(final$ED_DISPOSITION == 'Discharge', 1, 0)
 final$observation = ifelse(final$ED_DISPOSITION == 'Observation', 1, 0)
@@ -492,7 +488,11 @@ final <- final %>%
     observation == 1 ~ 'observeration',
     TRUE ~ 'other')) 
 
+# Limit dataset to only physicians that had more than 520 encounters
+provider_counts <- table(final$ED_PROVIDER)
+providers_less_than_500 <- names(provider_counts[provider_counts < 520])
+final <- final[!(final$ED_PROVIDER %in% providers_less_than_500), ]
+
 
 rm(list = setdiff(ls(), "final"))
-
 #=========================================================================

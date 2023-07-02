@@ -38,6 +38,12 @@ header-includes:
 
 # Introduction
 
+
+Inefficiencies in Emergency Departments (EDs) are often due to a multitude of factors, one of which is the strategy for ordering diagnostic tests. Based on data from over 41,000 ED visits at the Mayo Clinic, Phoenix, AZ, a notable variability emerged in the propensity of physicians to batch or sequence diagnostic tests. This variation existed even among physicians operating under identical guidelines within the same hospital.
+
+Particularly noteworthy were the top ten most common chief complaints presenting to the ED. For these complaints, the variance in test ordering practices was substantial, suggesting a significant role for individual clinical judgment (Exhibit 1). Such insights point to the need for policy interventions targeting test ordering strategies to enhance ED efficiency, improve patient outcomes, and reduce healthcare costs.
+
+
 # Study Data And Methods
 
 
