@@ -6,6 +6,7 @@ rm(list = ls())
 
 library(tidyverse)
 library(stringr)
+library(lfe)
 
 #=========================================================================
 # Determine test times
@@ -136,6 +137,9 @@ df$image_image_batch <- ifelse(
                  function(x) grepl(x, df$batch, ignore.case = TRUE))) >= 2, 1, 0
 )
 
+df$image_image_batch <- ifelse(df$batch == ',NCT', 0, df$image_image_batch)
+
+
 df$imaging <- ifelse(
   df$XR_PERF == 1 | 
     df$CON_CT_PERF == 1 | 
@@ -173,6 +177,11 @@ df <- df %>%
     grepl('other', PATIENT_RACE, fixed = TRUE) ~ "other",
     grepl('', PATIENT_RACE, fixed = TRUE) ~ "unknown",
     TRUE ~ PATIENT_RACE))
+
+df$ARRIVAL_AGE_DI <- ifelse(
+  df$ARRIVAL_AGE_DI == '85+', '85', df$ARRIVAL_AGE_DI
+)
+df$ARRIVAL_AGE_DI <- as.numeric(df$ARRIVAL_AGE_DI)
 
 #=========================================================================
 # Clean Chief Complaint --------------------------------------------------
@@ -440,7 +449,7 @@ complaints <- list(
       'Urinary Retention', 'Slowing Urinary Stream',
       'Urinary Tract Infection', 'Urinary Urgency', 
       'Voiding Dysfunction',"Hesitancy Urinary")
-  )
+)
 
 
 for (i in seq(1,length(complaints))){
@@ -451,6 +460,10 @@ for (i in seq(1,length(complaints))){
     df$CHIEF_COMPLAINT %in% complaint, name, df$CHIEF_COMPLAINT
   )
 }
+
+df <- df %>%
+  mutate(complaint_esi  = paste(ESI, CHIEF_COMPLAINT),
+         complaint_esi = factor(complaint_esi))
 
 #=========================================================================
 # Categorize Vital Signs -------------------------------------------------
@@ -470,12 +483,82 @@ df$hypotensive <- ifelse(
 )
 
 #=========================================================================
+# Create Time FE ---------------------------------------------------------
+#=========================================================================
+
+df <- df %>%
+  separate(ARRIVAL_DTTM_REL, c("hours", "minutes"), sep = ":") %>%
+  mutate(rel_minutes_arrival = as.numeric(hours)*60 + as.numeric(minutes),
+         rel_minutes_depart = rel_minutes_arrival + ED_LOS)
+
+df$rel_minutes_depart <- df$rel_minutes_depart - min(df$rel_minutes_arrival)
+df$rel_minutes_arrival <- df$rel_minutes_arrival - min(df$rel_minutes_arrival)
+
+overlap_counts <- numeric(nrow(df))
+for (i in 1:nrow(df)) {
+  
+  current_arrival <- df$rel_minutes_arrival[i]
+  current_departure <- df$rel_minutes_depart[i]
+  
+  overlap_count <- sum(df$rel_minutes_arrival < current_departure & 
+                         df$rel_minutes_depart > current_arrival)
+  
+  overlap_counts[i] <- overlap_count
+}
+
+# overlap count
+df$overlap_count <- overlap_counts
+
+# overlap per minute
+df$overlap_per_min <- df$overlap_count / (df$ED_LOS)
+
+# time FE
+df$rel.hours <- as.numeric(df$hours)
+df$rel.hours <- df$rel.hours - min(df$rel.hours)
+
+# Create month of the year variable
+df$month <- cut((df$rel.hours %/% (30*24)) %% 12 + 1,
+                breaks = c(0, 1:12))
+
+# Create day of the week variable
+df$day_of_week <- cut((df$rel.hours %/% (24*7)) %% 7 + 1,
+                      breaks = c(0, 1:7))
+
+# Create hour of the day variable
+df$hour <- cut(df$rel.hours %% 24 + 1,
+               breaks = c(0, 1:24))
+
+df$dayofweekt <- paste(df$day_of_week, df$hour)
+
+df <- df %>%
+  separate(TRIAGE_COMPLETED_REL, 
+           c("triage_hours", "triage_minutes"), sep = ":") %>%
+  mutate(rel_minutes_triage =
+           (as.numeric(triage_hours)*60 + 
+              as.numeric(triage_minutes)) - 
+           rel_minutes_arrival)
+
+
+#=========================================================================
 # Create Final Dataset ---------------------------------------------------
 #=========================================================================
 
-final <- df %>%
+df$ln_ED_LOS <- log(df$ED_LOS)
+
+final <- df %>% 
+  drop_na(ESI, CHIEF_COMPLAINT, ED_PROVIDER, ESI, nEDTests, ARRIVAL_AGE_DI) %>%
+  select(ESI,  CHIEF_COMPLAINT, EXT_ID, 
+         ARRIVAL_AGE_DI, ED_LOS, ln_ED_LOS, ED_PROVIDER, nEDTests, hours,
+         RTN_72_HR, RTN_72_HR_ADMIT, race, XR_PERF, GENDER, ED_DISPOSITION,
+         tachycardic, tachypneic, febrile, hypotensive, rel.hours, any.batch,
+         rel_minutes_triage, lab_image_batch, image_image_batch, imaging,
+         overlap_per_min, overlap_count, complaint_esi, dayofweekt, month) %>%
   mutate(RTN_72_HR = ifelse(RTN_72_HR == 'Y', 1, 0),
-         RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0))
+         RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0)) 
+
+final$age_groups <- cut(final$ARRIVAL_AGE_DI, 
+                        c(-Inf, 20, 45, 65, Inf),
+                        labels = c("<20", "20-45", "45-65", "65+"))
 
 final$admit = ifelse(final$ED_DISPOSITION == 'Admit', 1, 0)
 final$discharge = ifelse(final$ED_DISPOSITION == 'Discharge', 1, 0)
@@ -488,11 +571,46 @@ final <- final %>%
     observation == 1 ~ 'observeration',
     TRUE ~ 'other')) 
 
+# Get Leave-one-out avg tests performed
+final <- final %>%
+  group_by(ED_PROVIDER) %>%
+  mutate(total_tests = sum(nEDTests),
+         n = n()) %>%
+  ungroup() %>%
+  mutate(avg_nEDTests = (total_tests - nEDTests)/ (n-1))
+
 # Limit dataset to only physicians that had more than 520 encounters
 provider_counts <- table(final$ED_PROVIDER)
 providers_less_than_500 <- names(provider_counts[provider_counts < 520])
 final <- final[!(final$ED_PROVIDER %in% providers_less_than_500), ]
+final$complaint_esi <- paste(final$CHIEF_COMPLAINT, final$ESI)
+
+# Limit to non-urniary complaints (low batching liklihood)
+final <- final %>%
+  group_by(CHIEF_COMPLAINT) %>%
+  filter(n() > 1000)
 
 
 rm(list = setdiff(ls(), "final"))
+#=========================================================================
+##########################################################################
+#=========================================================================
+# IV Construction --------------------------------------------------------
+#=========================================================================
+##########################################################################
+
+# Step 1: leave-out residualize at the ED encounter level
+## conditional on shift-level variation, random assignment
+## residual from regression represents physician tendency to batch
+final$residual_batch <- resid(
+  felm(any.batch ~ 0 | dayofweekt + month, data=final))
+
+# Step 2: get batch tendency for each provider
+final <- final %>%
+  group_by(ED_PROVIDER) %>%
+  mutate(Sum_Resid=sum(residual_batch, na.rm=T),
+         batch.tendency = (Sum_Resid - residual_batch) / (n() - 1)) %>% 
+  ungroup()
+
+write.csv(final, 'final.csv')
 #=========================================================================
