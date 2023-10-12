@@ -4,8 +4,6 @@
 #=========================================================================
 rm(list = ls()) 
 
-source('src/main.R')
-
 library(grid)
 library(shadowtext)
 library(tidyverse)
@@ -13,16 +11,27 @@ library(caret)
 library(sandwich)
 library(xtable)
 library(lmtest)
+library(gtsummary)
+
+data <- read_csv('final.csv')
 
 #=========================================================================
-# Table for Patient Characteristics Balance across Physicians
+# Table: Balance Table (Wald Test) across Physicians
+# 
+# Table reports the results of a Wald test which was conducted to assess 
+# the balance of chief complaints across providers in our dataset. A
+# balanced distribution implies that complaints and severity are evenly 
+# distributed across providers, which we expect to be the case due to 
+# randomization. The Wald F-statistic and p-value are reported.
+# Robust standard errors (type HC1) were used to account for potential
+# heteroscedasticity in the data.
 #=========================================================================
 #------------------------------
 # Data Preprocessing
 #------------------------------
 
 # Copy the original dataset
-patient_data <- final
+patient_data <- data
 
 # Get top 10 chief complaints based on frequency
 chief_complaint_freq <- table(patient_data$CHIEF_COMPLAINT)
@@ -45,11 +54,14 @@ patient_data$ESI_1_or_2 <- ifelse(patient_data$ESI == 1 | patient_data$ESI == 2,
 patient_data$ESI_3_or_4_or_5 <- ifelse(patient_data$ESI %in% c(3, 4, 5), 1, 0)
 
 # Update the relevant variables list
-relevant_vars <- c(relevant_vars, 'ESI_1_or_2', 'ESI_3_or_4_or_5')
+relevant_vars <- c(relevant_vars, 'ESI_1_or_2', 'ESI_3_or_4_or_5', 
+                   "US_PERF", "NON_CON_CT_PERF", "CON_CT_PERF", 
+                   "LAB_PERF", "XR_PERF", "tachycardic", 
+                   "tachypneic","febrile","hypotensive")
 
-#------------------------------
+#-------------------------------------------------
 # Modeling & Balance Statistics
-#------------------------------
+#-------------------------------------------------
 
 # Initialize balance dataframe
 balance_stats <- data.frame(Df = numeric(), 
@@ -71,8 +83,218 @@ for (dummy_var in relevant_vars) {
   balance_stats <- rbind(balance_stats, temp_result)
 }
 
+row.names(balance_stats) <- NULL
+
 # Print the results in LaTeX format
-print(xtable(balance_stats, caption = "Wald Test Results"), type = "latex")
+latex_output <- capture.output(print(xtable(balance_stats[,c(2,3,4)], 
+                                            caption = "Wald Test Results", 
+                                            digits = c(0,3,3,0)), type = "latex"))
+
+
+latex_preamble <- "
+\\documentclass{article}
+\\usepackage{graphicx}
+\\usepackage{pdflscape}
+\\begin{document}
+\\begin{landscape}
+"
+
+latex_postamble <- "
+\\end{landscape}
+\\end{document}
+"
+
+writeLines(print(c(latex_preamble, latex_output, latex_postamble), type = "latex", print.results=FALSE), 
+           "manuscript/tables and figures/Balance_Table.tex")
+
+# Compile the LaTeX file to produce a PDF
+tinytex::pdflatex('manuscript/tables and figures/Balance_Table.tex')
+
+#=========================================================================
+# Table: Summary Statistics of Key Outcomes
+# 
+# This table shows how outcomes of interest vary across batchers and
+# and non-batchers. Batcher is determined based on having a tendency to 
+# batch that is greater than the average. More detail can be found in the
+# the paper.
+#=========================================================================
+
+categorical <- c('dispo')
+continuous <- c('nEDTests', "ED_LOS", "RTN_72_HR", "RTN_72_HR_ADMIT")
+data$type <- ifelse(data$batch.tendency > 0, 'Batcher', 'Non-Batcher')
+
+table <- data %>%
+  select(all_of(c(categorical, continuous)), type) %>%
+  tbl_summary(by = type, type = all_continuous() ~ "continuous2",
+              statistic = all_continuous() ~ c("{mean} ({sd})"),
+              missing_text = "(Missing)") %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 2),
+        test = list(all_continuous() ~ "t.test",
+                    all_categorical() ~ "chisq.test")) %>%
+  add_overall() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_caption("**Summary Statistics for Batcher vs. Non-Batcher**") 
+
+
+# Save the table to files
+gt::gtsave(as_gt(table), "manuscript/tables and figures/Outcomes_Summary_Table.pdf")
+gt::gtsave(as_gt(table), "manuscript/tables and figures/Outcomes_Summary_Table.png")
+
+#=========================================================================
+# Figure: Batching Rates for Top Chief Complaints
+#
+# Figure displays two statistics for the ten most common major chief 
+# complaint categories observed in our ED visit sample: the un-adjusted 
+# batching rate for lab-image batching and image-image batching.
+#=========================================================================
+
+# Data Preparation
+#----------------------
+
+# Calculate batching rates for each chief complaint
+batching_rates <- data %>%
+  group_by(CHIEF_COMPLAINT) %>%
+  summarise(total_cases = n(),
+            lab_batch_rate = sum(lab_image_batch)/total_cases,
+            image_batch_rate = sum(image_image_batch)/total_cases) %>%
+  arrange(desc(total_cases))
+
+# Filter for the top 10 chief complaints
+top_complaints_df <- batching_rates %>%
+  top_n(10, total_cases)
+
+# Convert to long format for plotting
+plot_data <- top_complaints_df %>%
+  pivot_longer(cols = c(image_batch_rate, lab_batch_rate),
+               names_to = "batch_type",
+               values_to = "rate")
+
+# Plotting
+#------------
+
+plot_data %>%
+  ggplot(aes(x = CHIEF_COMPLAINT, y = rate, fill = batch_type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Chief Complaint\n",
+       y = '\nBatching Rate',
+       title = 'Batching Rates for Top Chief Complaints') +
+  scale_fill_manual(values = c("lab_batch_rate" = "#00539C", 
+                               "image_batch_rate" = "#EEA47F"),
+                    labels = c("Image + Image Batching Rate", "Lab + Image Batching Rate")) +
+  theme_minimal() +  scale_x_discrete(labels = function(x) str_wrap(x, width = 12)) +
+  scale_y_continuous(labels = scales::percent) +
+  theme(axis.text.x = element_text(color = "black", size = 20),
+        axis.text.y = element_text(color = "black", size = 20),
+        axis.title = element_blank(),
+        plot.title = element_text(color = "black", size = 28, face = "bold", hjust = 0.5),
+        legend.title = element_blank(),
+        legend.position = c(1, 0.95),
+        legend.justification = c("right", "top"),
+        legend.key = element_rect(fill = "transparent", colour = "transparent"),
+        legend.text = element_text(color = "black", size = 16, face = 'bold'),
+        legend.key.height = unit(1.1, "cm"))
+
+
+# Save the plot to files
+ggsave("manuscript/tables and figures/Lab and Image Batch Rates.pdf", width = 20, height = 10)
+ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 20, height = 10, bg = 'white')
+
+
+#=========================================================================
+# Figure: Systematic Variation in Tendency to Batch Visualization
+# 
+# Figure illuminates the marked differences among physicians 
+# in their propensity to batch-order diagnostic tests. Physicians are
+# mapped on the x-axis, revealing those with a systematically heightened 
+# tendency to batch (in orange) compared to their peers who batch less 
+# frequently (in blue).
+#=========================================================================
+
+data_for_plot <- data
+
+complaints <- c('Upper Respiratory Symptoms',
+               'Abdominal Complaints',
+               'Back or Flank Pain',
+               'Gastrointestinal Issues')
+
+chief_complaint_freq <- table(data$CHIEF_COMPLAINT)
+top_10_chief_complaints <- names(chief_complaint_freq)[order(chief_complaint_freq, decreasing = TRUE)][1:10]
+
+data_for_plot$CHIEF_COMPLAINT <- ifelse(data_for_plot$CHIEF_COMPLAINT %in% complaints, 
+                                        data_for_plot$CHIEF_COMPLAINT, "DROP")
+
+data_for_plot$CHIEF_COMPLAINT <- ifelse(data_for_plot$CHIEF_COMPLAINT == 'Falls, Motor Vehicle Crashes, Assaults, and Trauma', 
+                                        'Assaults and Trauma', data_for_plot$CHIEF_COMPLAINT)
+
+data_for_plot <- data_for_plot %>%
+  filter(CHIEF_COMPLAINT != 'DROP') %>%
+  group_by(ED_PROVIDER, CHIEF_COMPLAINT) %>%
+  summarize(batch_rate = mean(any.batch))
+
+
+
+# Step 1: Compute the average batch_rate for each provider
+provider_avg_rate <- data_for_plot %>%
+  group_by(ED_PROVIDER) %>%
+  summarize(avg_rate = mean(batch_rate, na.rm = TRUE)) %>%
+  arrange(-avg_rate) # descending order
+
+# Step 2: Select the top 4 and bottom 4 providers
+top_providers <- head(provider_avg_rate$ED_PROVIDER, 4)
+bottom_providers <- tail(provider_avg_rate$ED_PROVIDER, 4)
+
+# Step 3: Filter the data for these providers and then compare their batch rates
+top_data <- data_for_plot %>% filter(ED_PROVIDER %in% top_providers)
+bottom_data <- data_for_plot %>% filter(ED_PROVIDER %in% bottom_providers)
+
+all_complaints <- unique(data_for_plot$CHIEF_COMPLAINT)
+top_higher_than_bottom <- all(sapply(all_complaints, function(complaint) {
+  min_top <- min(top_data$batch_rate[top_data$CHIEF_COMPLAINT == complaint], na.rm = TRUE)
+  max_bottom <- max(bottom_data$batch_rate[bottom_data$CHIEF_COMPLAINT == complaint], na.rm = TRUE)
+  return(min_top > max_bottom)
+}))
+
+# Step 4: Create an indicator variable
+data_for_plot <- data_for_plot %>%
+  mutate(is_selected = case_when(
+    (ED_PROVIDER %in% top_providers & top_higher_than_bottom) ~ 2,
+    (ED_PROVIDER %in% bottom_providers & !top_higher_than_bottom) ~ 1,
+    TRUE ~ 0
+  ))
+
+
+data_for_plot
+
+
+data_for_plot %>%
+  ggplot(., aes(x = ED_PROVIDER, y = batch_rate)) +
+  geom_bar(stat = "identity", position = "dodge", fill="#CBC3E3") +
+  facet_wrap(~CHIEF_COMPLAINT, nrow=1) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  theme(plot.background=element_rect(fill='white'),
+        panel.border = element_blank(),
+        axis.text.y  = element_text(size=14, color='black'), 
+        axis.text.x  = element_blank(),
+        plot.margin = unit(c(0.5, 0.2, 0.2, 0.2), "cm"),
+        panel.grid.major=element_line(color='grey85',size=0.3),
+        legend.position = 'none',
+        axis.title.y =  element_text(color = 'black', size = 14),
+        axis.title.x = element_text(color = 'black', size = 18),
+        strip.text.x = element_text(color = 'black', size = 12, face = "bold"),
+        legend.title.align=0.5) +
+  labs(x='',
+       y='Batch-Ordering Frequency\n\n')
+
+################################
+
+
+
+
+
+
+
+
 
 #=========================================================================
 # Figure: Optimal Testing Strategy Visualization
@@ -156,69 +378,17 @@ results_df %>%
 ggsave("manuscript/figures/decision.pdf", width = 12, height = 10)
 ggsave("manuscript/figures/decision.png", width = 12, height = 10, bg = 'white')
 
-#=========================================================================
-# Figure 2: Batching Rates for Top Chief Complaints
-#
-# This figure visualizes the batching rates for the top 10 chief complaints
-# based on both the lab_image_batch and image_image_batch criteria.
-#=========================================================================
-
-# Data Preparation
-#----------------------
-
-# Calculate batching rates for each chief complaint
-batching_rates <- final %>%
-  group_by(CHIEF_COMPLAINT) %>%
-  summarise(total_cases = n(),
-            lab_batch_rate = sum(lab_image_batch)/total_cases,
-            image_batch_rate = sum(image_image_batch)/total_cases) %>%
-  arrange(desc(total_cases))
-
-# Filter for the top 10 chief complaints
-top_complaints_df <- batching_rates %>%
-  top_n(10, total_cases)
-
-# Convert to long format for plotting
-plot_data <- top_complaints_df %>%
-  pivot_longer(cols = c(image_batch_rate, lab_batch_rate),
-               names_to = "batch_type",
-               values_to = "rate")
-
-# Plotting
-#------------
-
-plot_data %>%
-  ggplot(aes(x = CHIEF_COMPLAINT, y = rate, fill = batch_type)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "Chief Complaint\n",
-       y = '\nBatching Rate',
-       title = 'Batching Rates for Top Chief Complaints') +
-  scale_fill_manual(values = c("lab_batch_rate" = "#00539C", 
-                               "image_batch_rate" = "#EEA47F"),
-                    labels = c("Image + Image Batching Rate", "Lab + Image Batching Rate")) +
-  theme_minimal() +  scale_x_discrete(labels = function(x) str_wrap(x, width = 12)) +
-  scale_y_continuous(labels = scales::percent) +
-  theme(axis.text.x = element_text(color = "black", size = 16),
-        axis.text.y = element_text(color = "black", size = 20),
-        axis.title = element_blank(),
-        plot.title = element_text(color = "black", size = 28, face = "bold", hjust = 0.5),
-        legend.title = element_blank(),
-        legend.position = c(1, 0.95),
-        legend.justification = c("right", "top"),
-        legend.key = element_rect(fill = "transparent", colour = "transparent"),
-        legend.text = element_text(color = "black", size = 16, face = 'bold'),
-        legend.key.height = unit(1.1, "cm"))
-        
-
-# Save the plot to files
-ggsave("manuscript/figures/rates.pdf", width = 18, height = 10)
-ggsave("manuscript/figures/rates.png", width = 18, height = 10, bg = 'white')
-
 
 #=========================================================================
-# Figure 3
-#   - Show that across physician, there is variation in batching and 
-#     propensity to test
+
+# This figure displays the relationship between the standardized 
+# batch-ordering rate and the average number of tests ordered per
+# encounter for physicians within our study sample. Notably, physicians 
+# with a standardized batch-ordering rate above 0 (i.e., a batch rate
+# greater than the average of the sample) tend to order more diagnostic
+# tests on average as compared to physicians with a standardized 
+# batch-ordering rate below 0 (i.e., a batch rate below the 
+# average of the sample)
 #=========================================================================
 
 fig.3 <- final
@@ -463,30 +633,4 @@ fig.4 %>%
        fill = '')
 
 ################################
-
-library(gtsummary)
-
-final <- final %>%
-  group_by(CHIEF_COMPLAINT) %>%
-  filter(n() > 1000, CHIEF_COMPLAINT != 'Urinary Complaints') %>% ungroup()
-
-final$ARRIVAL_AGE_DI <- as.numeric(final$ARRIVAL_AGE_DI)
-
-t1.vars <- c('ESI', 'age_groups','ED_LOS', 'dispo',
-             'tachycardic', 'tachypneic', 'febrile', 'hypotensive', 
-             'nEDTests','race', 'GENDER')
-
-final %>%
-  select(one_of(t1.vars), any.batch) %>%
-  tbl_summary(by = any.batch, type = all_continuous() ~ "continuous2",
-              statistic = all_continuous() ~ c("{mean} ({sd})"),
-              missing_text = "(Missing)") %>%
-  add_p(pvalue_fun = ~style_pvalue(.x, digits = 2),
-        test = list(all_continuous() ~ "t.test",
-                    all_categorical() ~ "chisq.test")) %>%
-  add_overall() %>%
-  modify_header(label ~ "**Variable**") %>%
-  modify_caption("**Summary Statistics for Sequential vs. Batched Groups**") %>%
-  bold_labels()
-
 

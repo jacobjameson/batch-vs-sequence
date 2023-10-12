@@ -547,8 +547,8 @@ df$ln_ED_LOS <- log(df$ED_LOS)
 
 final <- df %>% 
   drop_na(ESI, CHIEF_COMPLAINT, ED_PROVIDER, ESI, nEDTests, ARRIVAL_AGE_DI) %>%
-  select(ESI,  CHIEF_COMPLAINT, EXT_ID, 
-         ARRIVAL_AGE_DI, ED_LOS, ln_ED_LOS, ED_PROVIDER, nEDTests, hours,
+  select(ESI,  CHIEF_COMPLAINT, EXT_ID, US_PERF, NON_CON_CT_PERF, CON_CT_PERF, LAB_PERF,
+         ARRIVAL_AGE_DI, ED_LOS, ln_ED_LOS, ED_PROVIDER, nEDTests, hours, 
          RTN_72_HR, RTN_72_HR_ADMIT, race, XR_PERF, GENDER, ED_DISPOSITION,
          tachycardic, tachypneic, febrile, hypotensive, rel.hours, any.batch,
          rel_minutes_triage, lab_image_batch, image_image_batch, imaging,
@@ -585,11 +585,21 @@ providers_less_than_500 <- names(provider_counts[provider_counts < 520])
 final <- final[!(final$ED_PROVIDER %in% providers_less_than_500), ]
 final$complaint_esi <- paste(final$CHIEF_COMPLAINT, final$ESI)
 
-# Limit to non-urniary complaints (low batching liklihood)
+# Limit to prevalent complaints only
 final <- final %>%
   group_by(CHIEF_COMPLAINT) %>%
   filter(n() > 1000)
 
+
+# write code to determine the standardized batching rate for each provider
+batch_rates <- final %>% 
+  group_by(ED_PROVIDER) %>%
+  summarise(batch_rate = mean(any.batch, na.rm=T)) %>%
+  ungroup() %>%
+  mutate(z_batch_rate = as.vector(scale(batch_rate)),
+         batcher = ifelse(z_batch_rate > 0, 'Batcher', 'Non-Batcher'))
+
+final <- merge(final, batch_rates, on=c('ED_PROVIER'))
 
 rm(list = setdiff(ls(), "final"))
 #=========================================================================
