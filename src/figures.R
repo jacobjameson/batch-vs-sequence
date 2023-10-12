@@ -5,7 +5,7 @@
 rm(list = ls()) 
 
 library(grid)
-library(shadowtext)
+library(ggtext)
 library(tidyverse)
 library(caret)
 library(sandwich)
@@ -170,23 +170,22 @@ plot_data <- top_complaints_df %>%
                names_to = "batch_type",
                values_to = "rate")
 
-# Plotting
-#------------
 
 plot_data %>%
   ggplot(aes(x = CHIEF_COMPLAINT, y = rate, fill = batch_type)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(x = "Chief Complaint\n",
-       y = '\nBatching Rate',
+       y = 'Batch-Ordering Frequency\n',
        title = 'Batching Rates for Top Chief Complaints') +
-  scale_fill_manual(values = c("lab_batch_rate" = "#00539C", 
-                               "image_batch_rate" = "#EEA47F"),
+  scale_fill_manual(values = c("lab_batch_rate" = "#ffcc5c", 
+                               "image_batch_rate" = "#ff6f69"),
                     labels = c("Image + Image Batching Rate", "Lab + Image Batching Rate")) +
   theme_minimal() +  scale_x_discrete(labels = function(x) str_wrap(x, width = 12)) +
   scale_y_continuous(labels = scales::percent) +
   theme(axis.text.x = element_text(color = "black", size = 20),
         axis.text.y = element_text(color = "black", size = 20),
         axis.title = element_blank(),
+        axis.title.y = element_text(color = 'black', size = 24),
         plot.title = element_text(color = "black", size = 28, face = "bold", hjust = 0.5),
         legend.title = element_blank(),
         legend.position = c(1, 0.95),
@@ -197,8 +196,8 @@ plot_data %>%
 
 
 # Save the plot to files
-ggsave("manuscript/tables and figures/Lab and Image Batch Rates.pdf", width = 20, height = 10)
-ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 20, height = 10, bg = 'white')
+ggsave("manuscript/tables and figures/Lab and Image Batch Rates.pdf", width = 20, height = 8)
+ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 20, height = 8, bg = 'white')
 
 #=========================================================================
 # Figure: Systematic Variation in Tendency to Batch Visualization
@@ -244,23 +243,21 @@ data_for_plot <- data_for_plot %>%
   )
 
 
-library(ggtext)
 
 data_for_plot %>%
   ggplot(aes(x = ED_PROVIDER, y = batch_rate, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~CHIEF_COMPLAINT, nrow = 1) +
   theme_bw() + 
-  scale_fill_manual(values = c("low propensity" = "#BB5566", 
-                               "high propensity" = "#DDAA33",
+  scale_fill_manual(values = c("low propensity" = "#2ab7ca", 
+                               "high propensity" = "#fe4a49",
                                'middle' = 'grey80')) +
   scale_y_continuous(labels = scales::percent) +
   theme(
     plot.background = element_rect(fill = 'white'),
-    #panel.border = element_blank(),
     axis.text.y = element_text(size = 16, color = 'black'), 
     axis.text.x = element_blank(),
-    plot.title = element_text(size=22, face = 'bold', hjust = 0.5),
+    plot.title = element_text(size=18, face = 'bold', hjust = 0.5),
     plot.margin = unit(c(1, 0.2, 0.2, 0.2), "cm"),
     panel.grid.major = element_line(color = 'grey85', size = 0.3),
     legend.position = 'none',
@@ -270,21 +267,84 @@ data_for_plot %>%
   ) +
   labs(
     x = '',
-    y = 'Batch-Ordering Frequency\n\n',
-    title = str_wrap("Physicians with <span style = 'color: #DDAA33;'>High Tendency to Batch</span> vs 
-                     Physicians with <span style = 'color: #BB5566;'>Low Tendency to Batch</span>")) +
+    y = 'Batch-Ordering Frequency\n',
+    title = str_wrap("Physicians with <span style = 'color: #fe4a49;'>High Tendency to Batch</span> vs 
+                     Physicians with <span style = 'color: #2ab7ca;'>Low Tendency to Batch</span>")) +
   theme(plot.title = element_markdown())
 
 
-################################
+# Save the plot to files
+ggsave("manuscript/tables and figures/Physician Variation.pdf", width = 14, height = 5)
+ggsave("manuscript/tables and figures/Physician Variation.png", width = 14, height = 5, bg = 'white')
 
+#=========================================================================
 
+# This figure displays the relationship between the standardized 
+# batch-ordering rate and the average number of tests ordered per
+# encounter for physicians within our study sample. Notably, physicians 
+# with a standardized batch-ordering rate above 0 (i.e., a batch rate
+# greater than the average of the sample) tend to order more diagnostic
+# tests on average as compared to physicians with a standardized 
+# batch-ordering rate below 0 (i.e., a batch rate below the 
+# average of the sample)
+#=========================================================================
 
+data_for_plot <- data
 
+data_for_plot.1 <- data_for_plot %>%
+  select(ED_PROVIDER, avg_nEDTests, batch.tendency_li) %>%
+  group_by(ED_PROVIDER) %>%
+  summarise(avg_nEDTests = mean(avg_nEDTests),
+            batch.tendency_li = mean(batch.tendency_li)) %>%
+  mutate(score = as.vector(scale(batch.tendency_li)),
+         group = 'Lab Test + Imaging Test Batch',
+         tendency = ifelse(score > 0, 'high', 'low'))
 
+data_for_plot.2 <- data_for_plot %>%
+  select(ED_PROVIDER, avg_nEDTests, batch.tendency_ii) %>%
+  group_by(ED_PROVIDER) %>%
+  summarise(avg_nEDTests = mean(avg_nEDTests),
+            batch.tendency_ii = mean(batch.tendency_ii)) %>%
+  mutate(score = as.vector(scale(batch.tendency_ii)),
+         group = 'Imaging Test + Imaging Test Batch',
+         tendency = ifelse(score > 0, 'high', 'low'))
 
+data_for_plot <- bind_rows(data_for_plot.1, data_for_plot.2) 
 
+data_for_plot %>%
+  ggplot()  +
+  geom_point(aes(y=avg_nEDTests,x = score, 
+                 color=tendency),size=5, stroke=1) +
+  geom_rect(aes(xmin = 0, xmax = Inf, ymin = -Inf, ymax = Inf), fill = "#fe4a49", alpha = 0.008) +
+  geom_rect(aes(xmin = -Inf, xmax = 0, ymin = -Inf, ymax = Inf), fill = "#2ab7ca", alpha = 0.008) +
+  geom_smooth(aes(y=avg_nEDTests,x = score), method = "lm",se = T) +
+  facet_wrap(~group, ncol = 2) + 
+  theme_bw() + 
+  scale_color_manual(values = c("low" = "#2ab7ca", 
+                               "high" = "#fe4a49")) + 
+  theme(plot.background=element_rect(fill='white'),
+        panel.border = element_blank(),
+        axis.text.y  = element_text(size=20, color='black'), 
+        axis.text.x  = element_text(size=20),
+        plot.margin = unit(c(0.5, 0.2, 0.2, 0.2), "cm"),
+        panel.grid.major=element_line(color='grey85',size=0.3),
+        legend.position = 'none',
+        axis.title.y =  element_text(color = 'black',size = 20),
+        axis.title.x = element_text(color = 'black',size = 20),
+        strip.text.x = element_text(color = 'black', size = 20, face = "bold"),
+        plot.title = element_text(color = "black", size = 30, 
+                                  face = "bold", margin = margin(0,0,30,0), hjust = 0),
+       plot.subtitle = element_text(color = "black", size = 14, 
+                                    margin = margin(0,0,30,0),hjust = 0),
+        legend.text = element_text(size=15),
+        legend.title = element_text(size=16, face = 'bold'),
+        legend.background = element_rect(fill = "grey96", color = NA)) +
+  labs(x='\nStandardized Batch-Ordering Rate',
+       y='Average Number of Tests \nOrdered per Encounter\n')
 
+# Save the plot to files
+ggsave("manuscript/tables and figures/Batching and Avg Tests.pdf", width = 14, height = 7)
+ggsave("manuscript/tables and figures/Batching and Avg Tests.png", width = 14, height = 7, bg = 'white')
 
 #=========================================================================
 # Figure: Optimal Testing Strategy Visualization
@@ -367,260 +427,4 @@ results_df %>%
 # Save the plot to files
 ggsave("manuscript/figures/decision.pdf", width = 12, height = 10)
 ggsave("manuscript/figures/decision.png", width = 12, height = 10, bg = 'white')
-
-
-#=========================================================================
-
-# This figure displays the relationship between the standardized 
-# batch-ordering rate and the average number of tests ordered per
-# encounter for physicians within our study sample. Notably, physicians 
-# with a standardized batch-ordering rate above 0 (i.e., a batch rate
-# greater than the average of the sample) tend to order more diagnostic
-# tests on average as compared to physicians with a standardized 
-# batch-ordering rate below 0 (i.e., a batch rate below the 
-# average of the sample)
-#=========================================================================
-
-fig.3 <- final
-
-fig.3 %>%
-  group_by(CHIEF_COMPLAINT) %>%
-  summarise(n = n(), 
-            variability.any = var(any.batch, na.rm = TRUE),
-            variability.img = var(image_image_batch, na.rm = TRUE),
-            variability.lab = var(lab_image_batch, na.rm = TRUE)) %>%
-  arrange(desc(variability.any))
-
-fig.3 %>%
-  group_by(ED_PROVIDER) %>%
-  summarise(n = n(), 
-            avg.tests = mean(nEDTests),
-            variability.any = mean(any.batch, na.rm = TRUE),
-            variability.img = mean(image_image_batch, na.rm = TRUE),
-            variability.lab = mean(lab_image_batch, na.rm = TRUE),
-            top.tester = as.factor(ifelse(avg.tests >= 1.699777, 1, 0)))  %>%
-  ggplot()  +
-  geom_segment(aes(x=variability.img, xend=variability.lab, y=reorder(ED_PROVIDER,variability.lab), 
-                   yend=reorder(ED_PROVIDER,variability.lab)), size=1.5)  +
-  geom_point(aes(y=reorder(ED_PROVIDER,variability.lab),x=variability.lab, 
-                 color=avg.tests, shape="Lab + Image Batch"),size=8, stroke=2) +
-  geom_point(aes(y=reorder(ED_PROVIDER,variability.lab),x=variability.img, color=avg.tests, shape="Image + Image Batch"),
-             size=8, stroke=2) + 
-  scale_color_gsea(name="Average number of tests \nordered per visit",
-                   guide = guide_legend(keyheight = unit(3, units = "mm"), 
-                                        keywidth=unit(15, units = "mm"), 
-                                        label.position = "bottom", 
-                                        title.position = 'top', nrow=1)) +
-  scale_shape_manual(values=c("Image + Image Batch" = 17, "Lab + Image Batch" = 19),
-                     name = "Type of Batch",
-                     guide = guide_legend(override.aes = list(size=4))) +
-  theme_minimal() +
-  theme(plot.background=element_rect(fill='white'),
-        panel.border = element_blank(),
-        axis.text.y  = element_text(size=20, color='black'), 
-        axis.text.x  = element_text(size=20),
-        plot.margin = unit(c(0.5, 0.2, 0.2, 0.2), "cm"),
-        panel.grid.major=element_line(color='grey85',size=0.3),
-        legend.position = c(.85, 0.5),
-        axis.title.y = element_blank(),
-        axis.title.x = element_text(
-          color = 'black',
-          size = 18),
-        legend.title.align=0.5,
-        plot.title = element_text(
-          color = "black", 
-          size = 70, 
-          face = "bold",
-          margin = margin(0,0,30,0),
-          hjust = 0,
-        ),
-        plot.subtitle = element_text(
-          color = "black", 
-          size = 18,
-          margin = margin(0,0,30,0),
-          hjust = 0
-        ),
-        legend.text = element_text(size=15),
-        legend.title = element_text(size=16, face = 'bold'),
-        legend.background = element_rect(fill = "grey96", color = NA),
-        plot.title.position = "plot",
-        plot.caption.position = "plot",
-        plot.caption = element_text(
-          color = "black", 
-          size = 9,
-          lineheight = 1.2, 
-          hjust = 1,
-          margin = margin(t = 30) 
-        )) +
-  labs(x='\nBatch-Ordering Rate',
-       title="Batching Rates by Physician",
-       fill = '',
-       subtitle=str_wrap('The physicians with the highest propensity to batch are
-                         also those that tend to order the greatest number of tests.\n', 160))
-
-
-
-temp <- fig.3 %>%
-  group_by(ED_PROVIDER) %>%
-  summarise(n = n(), 
-            avg.tests = mean(nEDTests),
-            variability = mean(image_image_batch, na.rm = TRUE),
-            group = 'Imaging Test + Imaging Test Batch') %>%
-  ungroup() %>%
-  mutate(score = (variability - mean(variability)) / sd(variability))
-
-
-temp.2 <- fig.3 %>%
-  group_by(ED_PROVIDER) %>%
-  summarise(n = n(), 
-            avg.tests = mean(nEDTests),
-            variability = mean(lab_image_batch, na.rm = TRUE),
-            group = 'Lab Test + Imaging Test Batch') %>%
-  ungroup() %>%
-  mutate(score = (variability - mean(variability)) / sd(variability))
-
-bind_rows(temp, temp.2) %>%
-  ggplot()  +
-  geom_point(aes(y=avg.tests,x = score, fill='grey50'),size=5, stroke=2) +
-  geom_smooth(aes(y=avg.tests,x = score), method = "lm",se = T) +
-  facet_wrap(~group, ncol = 2) + 
-  theme_minimal() +
-  theme(plot.background=element_rect(fill='white'),
-        panel.border = element_blank(),
-        axis.text.y  = element_text(size=20, color='black'), 
-        axis.text.x  = element_text(size=20),
-        plot.margin = unit(c(0.5, 0.2, 0.2, 0.2), "cm"),
-        panel.grid.major=element_line(color='grey85',size=0.3),
-        legend.position = 'none',
-        axis.title.y =  element_text(
-          color = 'black',
-          size = 18),
-        axis.title.x = element_text(
-          color = 'black',
-          size = 18),
-        strip.text.x = element_text(
-          color = 'black',
-          size = 18),
-        legend.title.align=0.5,
-        plot.title = element_text(
-          color = "black", 
-          size = 30, 
-          face = "bold",
-          margin = margin(0,0,30,0),
-          hjust = 0,
-        ),
-        plot.subtitle = element_text(
-          color = "black", 
-          size = 14,
-          margin = margin(0,0,30,0),
-          hjust = 0
-        ),
-        legend.text = element_text(size=15),
-        legend.title = element_text(size=16, face = 'bold'),
-        legend.background = element_rect(fill = "grey96", color = NA),
-        plot.title.position = "plot",
-        plot.caption.position = "plot",
-        plot.caption = element_text(
-          color = "black", 
-          size = 9,
-          lineheight = 1.2, 
-          hjust = 1,
-          margin = margin(t = 30) 
-        )) +
-  labs(x='\nStandardized Batch-Ordering Rate',
-       y='Average Number of Tests Ordered per Encounter\n\n')
-       #title="Relationship Between Batch Tendency and Over-Testing",
-       #fill = '',
-       #subtitle=str_wrap('The physicians with the highest propensity to batch are
-                         #also those that tend to order the greatest number of tests.\n', 160))
-
-  
-bind_rows(temp, temp.2) %>%
-  mutate(above_ii = ifelse(group == 'Imaging Test + Imaging Test Batch' & score > 0, 1, 0),
-         above_li = ifelse(group == 'Lab Test + Imaging Test Batch' & score > 0, 1, 0)) %>%
-  group_by(group, above_ii) %>%
-  summarise(avgt = mean(avg.tests))
-
-bind_rows(temp, temp.2) %>%
-  mutate(above_ii = ifelse(group == 'Imaging Test + Imaging Test Batch' & score > 0, 1, 0),
-         above_li = ifelse(group == 'Lab Test + Imaging Test Batch' & score > 0, 1, 0)) %>%
-  group_by(group, above_li) %>%
-  summarise(avgt = mean(avg.tests))
-
-#=========================================================================
-# Figure 3
-#   - Show that across physician, there is variation in batching and 
-#     propensity to test
-#=========================================================================
-
-fig.4 <- final
-
-variation <- c('Upper Respiratory Symptoms',
-                'Abdominal Complaints',
-                'Back or Flank Pain',
-               'Gastrointestinal Issues')
-
-chief_complaint_freq <- table(fig.4$CHIEF_COMPLAINT)
-top_10_chief_complaints <- names(chief_complaint_freq)[order(chief_complaint_freq, decreasing = TRUE)][1:10]
-fig.4$CHIEF_COMPLAINT <- ifelse(fig.4$CHIEF_COMPLAINT %in% variation, fig.4$CHIEF_COMPLAINT, "DROP")
-
-fig.4$CHIEF_COMPLAINT <- ifelse(fig.4$CHIEF_COMPLAINT == 'Falls, Motor Vehicle Crashes, Assaults, and Trauma', 'Assaults and Trauma', fig.4$CHIEF_COMPLAINT)
-fig.4 %>%
-  filter(CHIEF_COMPLAINT != 'DROP') %>%
-  group_by(ED_PROVIDER, CHIEF_COMPLAINT) %>%
-  summarize(batch_rate = mean(any.batch)) %>%
-  ggplot(., aes(x = ED_PROVIDER, y = batch_rate)) +
-  geom_bar(stat = "identity", position = "dodge", fill="#CBC3E3") +
-  facet_wrap(~CHIEF_COMPLAINT, nrow=1) +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  theme(plot.background=element_rect(fill='white'),
-        panel.border = element_blank(),
-        axis.text.y  = element_text(size=14, color='black'), 
-        axis.text.x  = element_blank(),
-        plot.margin = unit(c(0.5, 0.2, 0.2, 0.2), "cm"),
-        panel.grid.major=element_line(color='grey85',size=0.3),
-        legend.position = 'none',
-        axis.title.y =  element_text(
-          color = 'black',
-          size = 14),
-        axis.title.x = element_text(
-          color = 'black',
-          size = 18),
-        strip.text.x = element_text(
-          color = 'black',
-          size = 12,
-          face = "bold"),
-        legend.title.align=0.5,
-        plot.title = element_text(
-          color = "black", 
-          size = 30, 
-          face = "bold",
-          margin = margin(0,0,30,0),
-          hjust = 0,
-        ),
-        plot.subtitle = element_text(
-          color = "black", 
-          size = 14,
-          margin = margin(0,0,30,0),
-          hjust = 0
-        ),
-        legend.text = element_text(size=15),
-        legend.title = element_text(size=16, face = 'bold'),
-        legend.background = element_rect(fill = "grey96", color = NA),
-        plot.title.position = "plot",
-        plot.caption.position = "plot",
-        plot.caption = element_text(
-          color = "black", 
-          size = 9,
-          lineheight = 1.2, 
-          hjust = 1,
-          margin = margin(t = 30) 
-        )) +
-  labs(x='',
-       y='Batch-Ordering Frequency\n\n',
-       #title="Variation in Batch-Ordering by Provider",
-       fill = '')
-
-################################
 

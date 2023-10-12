@@ -615,11 +615,23 @@ rm(list = setdiff(ls(), "final"))
 final$residual_batch <- resid(
   felm(any.batch ~ 0 | dayofweekt + month, data=final))
 
+final$residual_batch_li <- resid(
+  felm(lab_image_batch ~ 0 | dayofweekt + month, data=final))
+
+final$residual_batch_ii <- resid(
+  felm(image_image_batch ~ 0 | dayofweekt + month, data=final))
+
 # Step 2: get batch tendency for each provider
 final <- final %>%
   group_by(ED_PROVIDER) %>%
   mutate(Sum_Resid=sum(residual_batch, na.rm=T),
-         batch.tendency = (Sum_Resid - residual_batch) / (n() - 1)) %>% 
+         batch.tendency = (Sum_Resid - residual_batch) / (n() - 1),
+         
+         Sum_Resid_li=sum(residual_batch_li, na.rm=T),
+         batch.tendency_li = (Sum_Resid_li - residual_batch_li) / (n() - 1),
+         
+         Sum_Resid_ii=sum(residual_batch_ii, na.rm=T),
+         batch.tendency_ii = (Sum_Resid_ii - residual_batch_ii) / (n() - 1)) %>% 
   ungroup()
 
 write.csv(final, 'final.csv')
