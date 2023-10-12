@@ -104,7 +104,8 @@ latex_postamble <- "
 \\end{document}
 "
 
-writeLines(print(c(latex_preamble, latex_output, latex_postamble), type = "latex", print.results=FALSE), 
+writeLines(print(c(latex_preamble, latex_output, latex_postamble), 
+                 type = "latex", print.results=FALSE), 
            "manuscript/tables and figures/Balance_Table.tex")
 
 # Compile the LaTeX file to produce a PDF
@@ -199,7 +200,6 @@ plot_data %>%
 ggsave("manuscript/tables and figures/Lab and Image Batch Rates.pdf", width = 20, height = 10)
 ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 20, height = 10, bg = 'white')
 
-
 #=========================================================================
 # Figure: Systematic Variation in Tendency to Batch Visualization
 # 
@@ -229,62 +229,52 @@ data_for_plot$CHIEF_COMPLAINT <- ifelse(data_for_plot$CHIEF_COMPLAINT == 'Falls,
 data_for_plot <- data_for_plot %>%
   filter(CHIEF_COMPLAINT != 'DROP') %>%
   group_by(ED_PROVIDER, CHIEF_COMPLAINT) %>%
-  summarize(batch_rate = mean(any.batch))
+  summarize(batch_rate = mean(any.batch),
+            batch.tendency = mean(batch.tendency)) %>% 
+  ungroup() %>%
+  unique()
 
-
-
-# Step 1: Compute the average batch_rate for each provider
-provider_avg_rate <- data_for_plot %>%
-  group_by(ED_PROVIDER) %>%
-  summarize(avg_rate = mean(batch_rate, na.rm = TRUE)) %>%
-  arrange(-avg_rate) # descending order
-
-# Step 2: Select the top 4 and bottom 4 providers
-top_providers <- head(provider_avg_rate$ED_PROVIDER, 4)
-bottom_providers <- tail(provider_avg_rate$ED_PROVIDER, 4)
-
-# Step 3: Filter the data for these providers and then compare their batch rates
-top_data <- data_for_plot %>% filter(ED_PROVIDER %in% top_providers)
-bottom_data <- data_for_plot %>% filter(ED_PROVIDER %in% bottom_providers)
-
-all_complaints <- unique(data_for_plot$CHIEF_COMPLAINT)
-top_higher_than_bottom <- all(sapply(all_complaints, function(complaint) {
-  min_top <- min(top_data$batch_rate[top_data$CHIEF_COMPLAINT == complaint], na.rm = TRUE)
-  max_bottom <- max(bottom_data$batch_rate[bottom_data$CHIEF_COMPLAINT == complaint], na.rm = TRUE)
-  return(min_top > max_bottom)
-}))
-
-# Step 4: Create an indicator variable
 data_for_plot <- data_for_plot %>%
-  mutate(is_selected = case_when(
-    (ED_PROVIDER %in% top_providers & top_higher_than_bottom) ~ 2,
-    (ED_PROVIDER %in% bottom_providers & !top_higher_than_bottom) ~ 1,
-    TRUE ~ 0
-  ))
+  mutate(
+    type = case_when(
+      batch.tendency <= quantile(batch.tendency, 0.20, na.rm = TRUE) ~ "low propensity",
+      batch.tendency >= quantile(batch.tendency, 0.80, na.rm = TRUE) ~ "high propensity",
+      TRUE ~ 'middle'
+    )
+  )
 
 
-data_for_plot
-
+library(ggtext)
 
 data_for_plot %>%
-  ggplot(., aes(x = ED_PROVIDER, y = batch_rate)) +
-  geom_bar(stat = "identity", position = "dodge", fill="#CBC3E3") +
-  facet_wrap(~CHIEF_COMPLAINT, nrow=1) +
-  theme_minimal() +
+  ggplot(aes(x = ED_PROVIDER, y = batch_rate, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~CHIEF_COMPLAINT, nrow = 1) +
+  theme_bw() + 
+  scale_fill_manual(values = c("low propensity" = "#BB5566", 
+                               "high propensity" = "#DDAA33",
+                               'middle' = 'grey80')) +
   scale_y_continuous(labels = scales::percent) +
-  theme(plot.background=element_rect(fill='white'),
-        panel.border = element_blank(),
-        axis.text.y  = element_text(size=14, color='black'), 
-        axis.text.x  = element_blank(),
-        plot.margin = unit(c(0.5, 0.2, 0.2, 0.2), "cm"),
-        panel.grid.major=element_line(color='grey85',size=0.3),
-        legend.position = 'none',
-        axis.title.y =  element_text(color = 'black', size = 14),
-        axis.title.x = element_text(color = 'black', size = 18),
-        strip.text.x = element_text(color = 'black', size = 12, face = "bold"),
-        legend.title.align=0.5) +
-  labs(x='',
-       y='Batch-Ordering Frequency\n\n')
+  theme(
+    plot.background = element_rect(fill = 'white'),
+    #panel.border = element_blank(),
+    axis.text.y = element_text(size = 16, color = 'black'), 
+    axis.text.x = element_blank(),
+    plot.title = element_text(size=22, face = 'bold', hjust = 0.5),
+    plot.margin = unit(c(1, 0.2, 0.2, 0.2), "cm"),
+    panel.grid.major = element_line(color = 'grey85', size = 0.3),
+    legend.position = 'none',
+    axis.title.y = element_text(color = 'black', size = 18),
+    axis.title.x = element_text(color = 'black', size = 18),
+    strip.text.x = element_text(color = 'black', size = 15, face = "bold")
+  ) +
+  labs(
+    x = '',
+    y = 'Batch-Ordering Frequency\n\n',
+    title = str_wrap("Physicians with <span style = 'color: #DDAA33;'>High Tendency to Batch</span> vs 
+                     Physicians with <span style = 'color: #BB5566;'>Low Tendency to Batch</span>")) +
+  theme(plot.title = element_markdown())
+
 
 ################################
 
