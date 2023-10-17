@@ -494,23 +494,24 @@ df <- df %>%
 df$rel_minutes_depart <- df$rel_minutes_depart - min(df$rel_minutes_arrival)
 df$rel_minutes_arrival <- df$rel_minutes_arrival - min(df$rel_minutes_arrival)
 
-overlap_counts <- numeric(nrow(df))
-for (i in 1:nrow(df)) {
-  
-  current_arrival <- df$rel_minutes_arrival[i]
-  current_departure <- df$rel_minutes_depart[i]
-  
-  overlap_count <- sum(df$rel_minutes_arrival < current_departure & 
-                         df$rel_minutes_depart > current_arrival)
-  
-  overlap_counts[i] <- overlap_count
-}
+# Calculate the number of patients in the hospital at the time of each patient's arrival
+df$patients_in_hospital <- sapply(df$rel_minutes_arrival, function(arrival_time) {
+  sum(df$rel_minutes_arrival <= arrival_time & df$rel_minutes_depart > arrival_time) - 1
+})
 
-# overlap count
-df$overlap_count <- overlap_counts
+# Calculate the time of the first test order for each patient
+df$first_test_order_time <- apply(df[, c("US_ORDER_DTTM",
+                                         "NON_CON_CT_ORDER_DTTM",
+                                         "CON_CT_ORDER_DTTM",
+                                         "LAB_ORDER_DTTM", 
+                                         "XR_ORDER_DTTM")], 1, function(x) {
+  min(x, na.rm = TRUE)
+})
 
-# overlap per minute
-df$overlap_per_min <- df$overlap_count / (df$ED_LOS)
+# Calculate the number of patients in the hospital at the time of each patient's first test order
+df$patients_in_hospital_at_test <- sapply(df$first_test_order_time, function(test_time) {
+  sum(df$rel_minutes_arrival <= test_time & df$rel_minutes_depart > test_time) - 1
+})
 
 # time FE
 df$rel.hours <- as.numeric(df$hours)
@@ -552,7 +553,8 @@ final <- df %>%
          RTN_72_HR, RTN_72_HR_ADMIT, race, XR_PERF, GENDER, ED_DISPOSITION,
          tachycardic, tachypneic, febrile, hypotensive, rel.hours, any.batch,
          rel_minutes_triage, lab_image_batch, image_image_batch, imaging,
-         overlap_per_min, overlap_count, complaint_esi, dayofweekt, month) %>%
+         complaint_esi, dayofweekt, month,
+         patients_in_hospital, patients_in_hospital_at_test, first_test_order_time) %>%
   mutate(RTN_72_HR = ifelse(RTN_72_HR == 'Y', 1, 0),
          RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0)) 
 

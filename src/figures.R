@@ -242,8 +242,6 @@ data_for_plot <- data_for_plot %>%
     )
   )
 
-
-
 data_for_plot %>%
   ggplot(aes(x = ED_PROVIDER, y = batch_rate, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") +
@@ -353,9 +351,101 @@ ggsave("manuscript/tables and figures/Batching and Avg Tests.png", width = 14, h
 # based on the crowdedness and the Emergency Severity Index (ESI). We explore 
 # outcomes such as the number of tests, length of stay, and 72-hour returns.
 #=========================================================================
+library(marginaleffects)
+
+data_for_plot <- data %>%
+  filter(ESI != 5)
+
+data_for_plot$ESI <- as.factor(data_for_plot$ESI)
+
+# Create the crowdedness variable based on the quartiles
+data_for_plot$crowdedness <- cut(data_for_plot$patients_in_hospital, 
+                      breaks = quantile(data_for_plot$patients_in_hospital, 
+                                        probs = c(0, 0.2, 0.4, 0.6, 0.8, 1)), 
+                      labels = c("very low", "low", "medium", "high", 'very high'), 
+                      include.lowest = TRUE)
+
+complaints <- c('Abdominal Complaints', 'Back or Flank Pain', 
+                'Upper Respiratory Symptoms', 'Gastrointestinal Issues')
+
+# Define a function to perform the modeling and averaging for a given complaint and outcome
+model_for_complaint <- function(complaint, outcome_var) {
+  formula <- as.formula(paste(outcome_var, "~ batch.tendency*ESI + batch.tendency*crowdedness"))
+  
+  mod <- lm(formula, data = filter(data_for_plot, CHIEF_COMPLAINT == complaint))
+  
+  me <- avg_slopes(
+    mod,
+    by = c("ESI", "crowdedness"),
+    variables = "batch.tendency")
+  
+  me$complaint <- complaint
+  me$Outcome <- outcome_var
+  return(me)
+}
+
+# Use lapply to apply the function to each complaint and then bind the results together
+me_list.1 <- lapply(complaints, function(complaint) model_for_complaint(complaint, 'nEDTests'))
+me_list.2 <- lapply(complaints, function(complaint) model_for_complaint(complaint, 'ln_ED_LOS'))
+me_list.3 <- lapply(complaints, function(complaint) model_for_complaint(complaint, 'RTN_72_HR'))
+
+me.1 <- bind_rows(me_list)
+me.2 <- bind_rows(me_list)
+me.3 <- bind_rows(me_list)
+
+me <- bind_rows(me.1,me.2,me.3)
+
+data.frame(me) %>%
+  mutate(batch = ifelse(estimate < 0, 'Batcher', 'Non-Batcher'),
+         batch = ifelse(p.value > 0.1, 'No Difference', batch)) %>%
+  ggplot(aes(y=ESI, x=crowdedness, fill=batch)) +
+  geom_tile(color = "white", lwd = 1.5, linetype = 1) + 
+  facet_grid(Outcome ~ complaint) +
+             #labeller = as_labeller(c(nEDTests = "Decrease \nNumber of Tests",
+            #                          ln_ED_LOS = "Decrease \nLength of Stay"
+            #                          ,RTN_72_HR = "Decrease \nLiklihood of 72hr Return"))) +
+  scale_fill_manual(values = c('Non-Batcher' = "#E18727", 
+                               'Batcher' = "#0072B5",
+                               'No Difference' = 'grey60'), 
+                    name = "Optimal Testing Strategy") +
+  coord_equal() +
+ # scale_x_discrete(labels = function(x) {
+  #  case_when(
+   #   x == "Low" ~ str_wrap("Less Crowded ←", width = 5),
+  #    x == "High" ~ str_wrap("More Crowded →", width = 5),
+  #    TRUE ~ ""
+  #  )
+ # }) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size=18, color='black'),
+    axis.text.x = element_text(size=18, color='black'), 
+    panel.grid.major = element_line(color = 'black', size = 0.3),
+    legend.position = 'bottom',
+    axis.title.y = element_text(color = 'black', size = 20),
+    axis.title.x = element_blank(),
+    strip.text.x = element_text(color = 'black', size = 20, face = "bold"),
+    legend.text = element_text(size = 18),
+    legend.box.background = element_rect(colour = "black"),
+    legend.title = element_text(size = 18, face = 'bold')
+  ) +
+  labs(y = "Emergency Severity Index\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Pre-processing data for plotting
-data_for_plot <- final %>%
+data_for_plot <- data %>%
   mutate(crowdedness_category = cut(overlap_per_min, 
                                     breaks = quantile(overlap_per_min, 
                                                       probs = seq(0, 1, by = 0.2), 
@@ -363,7 +453,8 @@ data_for_plot <- final %>%
                                     labels = c("Very Low", "Low", "Medium", 
                                                "High", "Very High"),
                                     include.lowest = TRUE)) %>%
-  filter(ESI != 5, nEDTests >0)
+  filter(ESI != 5)
+
 
 # Extract unique combinations of ESI and crowdedness_category
 unique_combinations <- distinct(data_for_plot, ESI, crowdedness_category)
@@ -382,25 +473,31 @@ for(outcome in outcomes) {
                           ESI == unique_combinations$ESI[i], 
                           crowdedness_category == unique_combinations$crowdedness_category[i])
     
-    model <- lm(as.formula(paste0(outcome, " ~ any.batch + CHIEF_COMPLAINT + age_groups")), data = subset_data)
+    model <- lm(as.formula(paste0(outcome, " ~ type")), data = subset_data)
     
     current_results <- data.frame(Outcome = outcome,
                                   ESI = unique_combinations$ESI[i],
                                   crowdedness_category = unique_combinations$crowdedness_category[i],
-                                  coef_any_batch = coef(model)['any.batch'],
-                                  p_value_any_batch = summary(model)$coefficients['any.batch', 'Pr(>|t|)'])
+                                  coef_any_batch = coef(model)['typeNon-Batcher'],
+                                  p_value_any_batch = summary(model)$coefficients['typeNon-Batcher', 'Pr(>|t|)'])
     
     results_df <- rbind(results_df, current_results)
   }
 }
-
+results_df
 # Plot the results
 results_df %>%
-  mutate(batch = ifelse(coef_any_batch < 0, 'Batch', 'Sequence')) %>%
+  mutate(batch = ifelse(coef_any_batch < 0, 'Non-Batcher', 'Batcher'),
+         batch = ifelse(p_value_any_batch > 0.1, 'Unclear', batch)) %>%
   ggplot(aes(y=ESI, x=crowdedness_category, fill=batch)) +
   geom_tile(color = "white", lwd = 1.5, linetype = 1) + 
-  facet_wrap(~Outcome, nrow=1, labeller = as_labeller(c(nEDTests = "Number of Tests", ln_ED_LOS = "Length of Stay", RTN_72_HR = "72 Hour Return"))) +
-  scale_fill_manual(values = c("Batch" = "#E18727", "Sequence" = "#0072B5"), name = "Optimal Testing Strategy") +
+  facet_wrap(~Outcome, nrow=1, 
+             labeller = as_labeller(c(nEDTests = "Decrease \nNumber of Tests",
+                                      ln_ED_LOS = "Decrease \nLength of Stay"
+                                      , RTN_72_HR = "Decrease \nLiklihood of 72hr Return"))) +
+  scale_fill_manual(values = c('Non-Batcher' = "#E18727", 
+                               'Batcher' = "#0072B5"), 
+                    name = "Optimal Testing Strategy") +
   coord_equal() +
   scale_x_discrete(labels = function(x) {
     case_when(
@@ -427,4 +524,24 @@ results_df %>%
 # Save the plot to files
 ggsave("manuscript/figures/decision.pdf", width = 12, height = 10)
 ggsave("manuscript/figures/decision.png", width = 12, height = 10, bg = 'white')
+
+
+
+
+# Step 2: Compute the AMEs
+library(marginaleffects)
+
+ggpredict(mod, terms = c("batch.tendency", "ESI", "crowdedness_category"))
+
+
+mod
+ame_results <- margins(mod, variables = "type", 
+                       at = list(ESI = levels(data_for_plot$ESI),
+                                 crowdedness_category = levels(data_for_plot$crowdedness_category)))
+
+# Step 3: Display the results
+summary(ame_results)
+
+
+
 
