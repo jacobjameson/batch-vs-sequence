@@ -474,34 +474,15 @@ df$hypotensive <- ifelse(
 #=========================================================================
 
 df <- df %>%
-  separate(ARRIVAL_DTTM_REL, c("hours", "minutes"), sep = ":") %>%
-  mutate(rel_minutes_arrival = as.numeric(hours)*60 + as.numeric(minutes),
+  mutate(rel_minutes_arrival = ARRIVAL_DTTM_REL,
          rel_minutes_depart = rel_minutes_arrival + ED_LOS)
-
-
-df$rel_minutes_depart <- df$rel_minutes_depart - min(df$rel_minutes_arrival)
-df$rel_minutes_arrival <- df$rel_minutes_arrival - min(df$rel_minutes_arrival)
-
-
 
 # Calculate the number of patients in the hospital at the time of each patient's arrival
 df$patients_in_hospital <- sapply(df$rel_minutes_arrival, function(arrival_time) {
   sum(df$rel_minutes_arrival <= arrival_time & df$rel_minutes_depart > arrival_time) - 1
 })
 
-# Calculate the time of the first test order for each patient
-df$first_test_order_time <- apply(df[, c("US_ORDER_DTTM",
-                                         "NON_CON_CT_ORDER_DTTM",
-                                         "CON_CT_ORDER_DTTM",
-                                         "LAB_ORDER_DTTM", 
-                                         "XR_ORDER_DTTM")], 1, function(x) {
-  min(x, na.rm = TRUE)
-})
-
-# Calculate the number of patients in the hospital at the time of each patient's first test order
-df$patients_in_hospital_at_test <- sapply(df$first_test_order_time, function(test_time) {
-  sum(df$rel_minutes_arrival <= test_time & df$rel_minutes_depart > test_time) - 1
-})
+### working right here
 
 # time FE
 df$rel.hours <- as.numeric(df$hours)
@@ -520,14 +501,6 @@ df$hour <- cut(df$rel.hours %% 24 + 1,
                breaks = c(0, 1:24))
 
 df$dayofweekt <- paste(df$day_of_week, df$hour)
-
-df <- df %>%
-  separate(TRIAGE_COMPLETED_REL, 
-           c("triage_hours", "triage_minutes"), sep = ":") %>%
-  mutate(rel_minutes_triage =
-           (as.numeric(triage_hours)*60 + 
-              as.numeric(triage_minutes)) - 
-           rel_minutes_arrival)
 
 
 #=========================================================================
