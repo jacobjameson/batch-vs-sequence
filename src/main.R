@@ -7,6 +7,8 @@ rm(list = ls())
 library(tidyverse)
 library(stringr)
 library(lfe)
+library(lubridate)
+
 
 #=========================================================================
 # Determine test times
@@ -36,9 +38,6 @@ for (i in test_columns){
 }
 
 df$nEDTests = rowSums(df[test_columns])
-
-df[append(test_columns, "nEDTests")]
-
 
 # Identify columns with *_REL suffix
 rel_cols <- grep("_REL$", names(df), value = TRUE)
@@ -482,25 +481,17 @@ df$patients_in_hospital <- sapply(df$rel_minutes_arrival, function(arrival_time)
   sum(df$rel_minutes_arrival <= arrival_time & df$rel_minutes_depart > arrival_time) - 1
 })
 
-### working right here
+# Define arbitrary start date
+start_date <- as.POSIXct("2000-01-01 00:00:00", tz = "UTC")
 
-# time FE
-df$rel.hours <- as.numeric(df$hours)
-df$rel.hours <- df$rel.hours - min(df$rel.hours)
+# Convert relative minutes to datetime
+df$datetime <- start_date + minutes(df$rel_minutes_arrival)
 
-# Create month of the year variable
-df$month <- cut((df$rel.hours %/% (30*24)) %% 12 + 1,
-                breaks = c(0, 1:12))
-
-# Create day of the week variable
-df$day_of_week <- cut((df$rel.hours %/% (24*7)) %% 7 + 1,
-                      breaks = c(0, 1:7))
-
-# Create hour of the day variable
-df$hour <- cut(df$rel.hours %% 24 + 1,
-               breaks = c(0, 1:24))
-
-df$dayofweekt <- paste(df$day_of_week, df$hour)
+# Extract hour of day, day of week, and month of year
+df$hour_of_day <- hour(df$datetime)
+df$day_of_week <- weekdays(df$datetime)
+df$month_of_year <- month(df$datetime, label = TRUE)
+df$dayofweekt <- paste(df$day_of_week, df$hour_of_day)
 
 
 #=========================================================================
@@ -510,14 +501,6 @@ df$dayofweekt <- paste(df$day_of_week, df$hour)
 df$ln_ED_LOS <- log(df$ED_LOS)
 
 final <- df %>% 
-  drop_na(ESI, CHIEF_COMPLAINT, ED_PROVIDER, ESI, nEDTests, ARRIVAL_AGE_DI) %>%
-  select(ESI,  CHIEF_COMPLAINT, EXT_ID, US_PERF, NON_CON_CT_PERF, CON_CT_PERF, LAB_PERF,
-         ARRIVAL_AGE_DI, ED_LOS, ln_ED_LOS, ED_PROVIDER, nEDTests, hours, 
-         RTN_72_HR, RTN_72_HR_ADMIT, race, XR_PERF, GENDER, ED_DISPOSITION,
-         tachycardic, tachypneic, febrile, hypotensive, rel.hours, any.batch,
-         rel_minutes_triage, lab_image_batch, image_image_batch, imaging,
-         complaint_esi, dayofweekt, month,
-         patients_in_hospital, patients_in_hospital_at_test, first_test_order_time) %>%
   mutate(RTN_72_HR = ifelse(RTN_72_HR == 'Y', 1, 0),
          RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0)) 
 
@@ -578,13 +561,13 @@ rm(list = setdiff(ls(), "final"))
 ## conditional on shift-level variation, random assignment
 ## residual from regression represents physician tendency to batch
 final$residual_batch <- resid(
-  felm(any.batch ~ 0 | dayofweekt + month, data=final))
+  felm(any.batch ~ 0 | dayofweekt + month_of_year, data=final))
 
 final$residual_batch_li <- resid(
-  felm(lab_image_batch ~ 0 | dayofweekt + month, data=final))
+  felm(lab_image_batch ~ 0 | dayofweekt + month_of_year, data=final))
 
 final$residual_batch_ii <- resid(
-  felm(image_image_batch ~ 0 | dayofweekt + month, data=final))
+  felm(image_image_batch ~ 0 | dayofweekt + month_of_year, data=final))
 
 # Step 2: get batch tendency for each provider
 final <- final %>%
