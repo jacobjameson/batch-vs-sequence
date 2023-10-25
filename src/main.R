@@ -579,7 +579,9 @@ final <- final %>%
          batch.tendency_li = (Sum_Resid_li - residual_batch_li) / (n() - 1),
          
          Sum_Resid_ii=sum(residual_batch_ii, na.rm=T),
-         batch.tendency_ii = (Sum_Resid_ii - residual_batch_ii) / (n() - 1)) %>% 
+         batch.tendency_ii = (Sum_Resid_ii - residual_batch_ii) / (n() - 1),
+         
+         avg.batch.tendency = mean(batch.tendency)) %>%
   ungroup()
 
 write.csv(final, 'final.csv')

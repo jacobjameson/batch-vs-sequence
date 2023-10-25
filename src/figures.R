@@ -124,6 +124,7 @@ categorical <- c('dispo')
 continuous <- c('nEDTests', "ED_LOS", "RTN_72_HR", "RTN_72_HR_ADMIT",
                 "US_PERF", "NON_CON_CT_PERF", "CON_CT_PERF", 
                 "LAB_PERF", "XR_PERF")
+
 data$type <- ifelse(data$batch.tendency > 0, 'Batcher', 'Non-Batcher')
 
 table <- data %>%
@@ -142,6 +143,24 @@ table <- data %>%
 # Save the table to files
 gt::gtsave(as_gt(table), "manuscript/tables and figures/Outcomes_Summary_Table.pdf")
 gt::gtsave(as_gt(table), "manuscript/tables and figures/Outcomes_Summary_Table.png")
+
+
+table.2 <- data %>%
+  filter(nEDTests >= 2) %>%
+  select(all_of(c(categorical, continuous)), type) %>%
+  tbl_summary(by = type, type = all_continuous() ~ "continuous2",
+              statistic = all_continuous() ~ c("{mean} ({sd})"),
+              missing_text = "(Missing)") %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 2),
+        test = list(all_continuous() ~ "t.test",
+                    all_categorical() ~ "chisq.test")) %>%
+  add_overall() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_caption("**Summary Statistics for Batcher vs. Non-Batcher**") 
+
+# Save the table to files
+gt::gtsave(as_gt(table.2), "manuscript/tables and figures/Outcomes_Summary_Table_2+tests.pdf")
+gt::gtsave(as_gt(table.2), "manuscript/tables and figures/Outcomes_Summary_Table_2+test.png")
 
 #=========================================================================
 # Figure: Batching Rates for Top Chief Complaints
@@ -180,8 +199,8 @@ plot_data %>%
   geom_bar(stat = "identity", position = "dodge") +
   labs(x = "Chief Complaint\n",
        y = 'Batch-Ordering Frequency\n') +
-  scale_fill_manual(values = c("lab_batch_rate" = "#89ABE3", 
-                               "image_batch_rate" = "#EA738D"),
+  scale_fill_manual(values = c("lab_batch_rate" = "#09264a", 
+                               "image_batch_rate" = "#f99820"),
                     labels = c("Image + Image Batching Rate", "Lab + Image Batching Rate")) +
   theme_minimal() +  scale_x_discrete(labels = function(x) str_wrap(x, width = 12)) +
   scale_y_continuous(labels = scales::percent) +
@@ -197,7 +216,7 @@ plot_data %>%
 
 # Save the plot to files
 ggsave("manuscript/tables and figures/Lab and Image Batch Rates.pdf", width = 20, height = 8)
-ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 22, height = 12, bg = 'white')
+ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 23, height = 12, bg = 'white')
 
 #=========================================================================
 # Figure: Systematic Variation in Tendency to Batch Visualization
@@ -211,39 +230,40 @@ ggsave("manuscript/tables and figures/Lab and Image Batch Rates.png", width = 22
 
 data_for_plot <- data
 
-complaints <- c('Upper Respiratory Symptoms',
-               'Abdominal Complaints',
-               'Back or Flank Pain',
-               'Gastrointestinal Issues')
+complaints <- data %>%
+  group_by(CHIEF_COMPLAINT) %>%
+  summarize(var.batch = var(any.batch)) %>%
+  arrange(desc(var.batch)) %>% 
+  head(4)
 
-chief_complaint_freq <- table(data$CHIEF_COMPLAINT)
-top_10_chief_complaints <- names(chief_complaint_freq)[order(chief_complaint_freq, decreasing = TRUE)][1:10]
-
-data_for_plot$CHIEF_COMPLAINT <- ifelse(data_for_plot$CHIEF_COMPLAINT %in% complaints, 
-                                        data_for_plot$CHIEF_COMPLAINT, "DROP")
-
-data_for_plot$CHIEF_COMPLAINT <- ifelse(data_for_plot$CHIEF_COMPLAINT == 'Falls, Motor Vehicle Crashes, Assaults, and Trauma', 
-                                        'Assaults and Trauma', data_for_plot$CHIEF_COMPLAINT)
+complaints <- complaints$CHIEF_COMPLAINT
 
 data_for_plot <- data_for_plot %>%
-  filter(CHIEF_COMPLAINT != 'DROP') %>%
+  filter(CHIEF_COMPLAINT %in% complaints) %>%
   group_by(ED_PROVIDER, CHIEF_COMPLAINT) %>%
   summarize(batch_rate = mean(any.batch),
-            batch.tendency = mean(batch.tendency)) %>% 
-  ungroup() %>%
-  unique()
+            avg.batch.tendency = mean(avg.batch.tendency)) %>% 
+  ungroup() 
 
 data_for_plot <- data_for_plot %>%
   mutate(
     type = case_when(
-      batch.tendency <= quantile(batch.tendency, 0.20, na.rm = TRUE) ~ "low propensity",
-      batch.tendency >= quantile(batch.tendency, 0.80, na.rm = TRUE) ~ "high propensity",
+      avg.batch.tendency <= quantile(avg.batch.tendency, 0.25, na.rm = TRUE) ~ "low propensity",
+      avg.batch.tendency >= quantile(avg.batch.tendency, 0.75, na.rm = TRUE) ~ "high propensity",
       TRUE ~ 'middle'
     )
   )
 
+data_for_plot$type <- factor(data_for_plot$type, 
+                             levels = c("low propensity", "middle", "high propensity"))
+
+data_for_plot$ED_PROVIDER <- with(data_for_plot, 
+                                  reorder(ED_PROVIDER, type))
+
+
 data_for_plot %>%
-  ggplot(aes(x = ED_PROVIDER, y = batch_rate, fill = type)) +
+  arrange(type) %>%
+  ggplot(aes(x = fct_inorder(ED_PROVIDER), y = batch_rate, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~CHIEF_COMPLAINT, nrow = 1) +
   theme_bw() + 
@@ -261,13 +281,13 @@ data_for_plot %>%
     legend.position = 'none',
     axis.title.y = element_text(color = 'black', size = 18),
     axis.title.x = element_text(color = 'black', size = 18),
-    strip.text.x = element_text(color = 'black', size = 15, face = "bold")
+    strip.text.x = element_text(color = 'black', size = 12, face = "bold")
   ) +
   labs(
     x = '',
     y = 'Batch-Ordering Frequency\n',
-    title = str_wrap("Physicians with <span style = 'color: #fe4a49;'>High Tendency to Batch</span> vs 
-                     Physicians with <span style = 'color: #2ab7ca;'>Low Tendency to Batch</span>")) +
+    title = str_wrap("<span style = 'color: #2ab7ca;'>Physicians in Bottom 25% of Batchers</span> vs.
+                      <span style = 'color: #fe4a49;'>Physicians in Top 25% of Batchers</span>")) +
   theme(plot.title = element_markdown())
 
 
@@ -295,7 +315,7 @@ data_for_plot.1 <- data_for_plot %>%
   summarise(avg_nEDTests = mean(avg_nEDTests),
             batch.tendency_li = mean(batch.tendency_li)) %>%
   mutate(score = as.vector(scale(batch.tendency_li)),
-         group = 'Lab Test + Imaging Test Batch',
+         group = 'Lab + Image Batch Tendency',
          tendency = ifelse(score > 0, 'high', 'low'))
 
 data_for_plot.2 <- data_for_plot %>%
@@ -304,7 +324,7 @@ data_for_plot.2 <- data_for_plot %>%
   summarise(avg_nEDTests = mean(avg_nEDTests),
             batch.tendency_ii = mean(batch.tendency_ii)) %>%
   mutate(score = as.vector(scale(batch.tendency_ii)),
-         group = 'Imaging Test + Imaging Test Batch',
+         group = 'Image + Image Batch Tendency',
          tendency = ifelse(score > 0, 'high', 'low'))
 
 data_for_plot <- bind_rows(data_for_plot.1, data_for_plot.2) 
@@ -356,10 +376,10 @@ library(marginaleffects)
 data_for_plot <- data %>%
   mutate(ESI_cat = case_when(
     ESI == 1 ~ 'ESI 1',
-    ESI == 2 ~ 'ESI 2 or 3',
-    ESI == 3 ~ 'ESI 2 or 3',
-    ESI == 4 ~ 'ESI 4 or 5',
-    ESI == 5 ~ 'ESI 4 or 5'))
+    ESI == 2 ~ 'ESI 2',
+    ESI == 3 ~ 'ESI 3, 4, or 5',
+    ESI == 4 ~ 'ESI 3, 4, or 5',
+    ESI == 5 ~ 'ESI 3, 4, or 5'))
 
 data_for_plot$ESI_cat <- as.factor(data_for_plot$ESI_cat)
 
@@ -371,8 +391,8 @@ data_for_plot$crowdedness <- cut(data_for_plot$patients_in_hospital,
                       ordered = T,
                       include.lowest = TRUE)
 
-complaints <- c('Abdominal Complaints', 'Back or Flank Pain', 
-                'Upper Respiratory Symptoms', 'Gastrointestinal Issues')
+complaints <- c('Upper Respiratory Symptoms', 'Dizziness/Lightheadedness/Syncope', 
+                'Abdominal Complaints', 'Neurological Issue')
 
 # Define a function to perform the modeling and averaging for a given complaint and outcome
 model_for_complaint <- function(complaint, outcome_var) {
@@ -414,9 +434,9 @@ data.frame(me) %>%
                                       ln_ED_LOS = "Objective: \nDecrease Length of Stay",
                                       RTN_72_HR = "Objective: \nDecrease Liklihood of 72hr Return",
                                       `Abdominal Complaints` = 'Abdominal \nComplaints',
-                                      `Back or Flank Pain` = 'Back or \nFlank Pain',
+                                      `Dizziness/Lightheadedness/Syncope` = 'Dizziness/\nLightheadedness',
                                       `Upper Respiratory Symptoms` = 'Upper Respiratory \nSymptoms',
-                                      `Gastrointestinal Issues` = 'Gastrointestinal \nIssues')) ) +
+                                      `Neurological Issue` = 'Neurological \nIssue')) ) +
   scale_fill_manual(values = c('Non-Batcher' = "#2ab7ca", 
                                'Batcher' = "#fe4a49",
                                'No Preference' = 'grey60'), 
