@@ -465,23 +465,23 @@ data.frame(me) %>%
   }) +
   theme_bw() +
   theme(
-    axis.text.y = element_text(size=12, color='black'),
+    axis.text.y = element_text(size=13, color='black'),
     axis.text.x = element_text(size=12, color='black'), 
     panel.grid.major = element_line(color = 'black', size = 0.3),
     legend.position = 'bottom',
     axis.title.y = element_blank(),
     axis.title.x = element_blank(),
-    strip.text.x = element_text(color = 'black', size = 12, face = "bold"),
-    strip.text.y = element_text(color = 'black', size = 12),
-    legend.text = element_text(size = 12),
+    strip.text.x = element_text(color = 'black', size = 13, face = "bold"),
+    strip.text.y = element_text(color = 'black', size = 13),
+    legend.text = element_text(size = 16),
     legend.box.background = element_rect(colour = "black"),
-    legend.title = element_text(size = 12, face = 'bold')
+    legend.title = element_text(size = 16, face = 'bold')
   ) 
 
-# Save the plot to files
-ggsave("manuscript/tables and figures/decision.pdf", width = 12, height = 8)
-ggsave("manuscript/tables and figures/decision.png", width = 11.5, height = 8, bg = 'white')
 
+# Save the plot to files
+ggsave("outputs/figures/Figure 4.pdf", width = 12, height = 9)
+ggsave("outputs/figures/Figure 4.png", width = 12, height = 9, bg = 'white')
 
 
 
