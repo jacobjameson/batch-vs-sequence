@@ -550,6 +550,7 @@ batch_rates <- final %>%
 final <- merge(final, batch_rates, on=c('ED_PROVIER'))
 
 rm(list = setdiff(ls(), "final"))
+
 #=========================================================================
 ##########################################################################
 #=========================================================================
@@ -584,5 +585,5 @@ final <- final %>%
          avg.batch.tendency = mean(batch.tendency)) %>%
   ungroup()
 
-write.csv(final, 'final.csv')
+write.csv(final, 'outputs/data/final.csv')
 #=========================================================================

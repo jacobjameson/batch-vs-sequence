@@ -1,12 +1,5 @@
-
-\documentclass{article}
-\usepackage{graphicx}
-\usepackage{pdflscape}
-\begin{document}
-\begin{landscape}
-
 % latex table generated in R 4.3.1 by xtable 1.8-4 package
-% Thu Oct 19 14:42:16 2023
+% Mon Nov 13 13:40:47 2023
 \begin{table}[ht]
 \centering
 \begin{tabular}{rrrl}
@@ -38,7 +31,3 @@
 \end{tabular}
 \caption{Wald Test Results} 
 \end{table}
-
-\end{landscape}
-\end{document}
-
