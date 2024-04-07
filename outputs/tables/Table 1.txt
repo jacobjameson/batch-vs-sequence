@@ -1,32 +1,27 @@
-% latex table generated in R 4.3.1 by xtable 1.8-4 package
-% Mon Nov 13 13:40:47 2023
+% latex table generated in R 4.3.3 by xtable 1.8-4 package
+% Sat Apr  6 15:10:30 2024
 \begin{table}[ht]
 \centering
 \begin{tabular}{rrrl}
   \hline
  & F & Pr..F. & dummy\_var \\ 
   \hline
-1 & 2.587 & 0.108 & CHIEF\_COMPLAINTAbdominal.Complaints \\ 
-  2 & 1.637 & 0.201 & CHIEF\_COMPLAINTBack.or.Flank.Pain \\ 
-  3 & 0.407 & 0.524 & CHIEF\_COMPLAINTChest.Pain \\ 
-  4 & 1.847 & 0.174 & CHIEF\_COMPLAINTExtremity.Complaints \\ 
-  5 & 0.023 & 0.880 & CHIEF\_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma \\ 
-  6 & 0.105 & 0.746 & CHIEF\_COMPLAINTGastrointestinal.Issues \\ 
-  7 & 0.135 & 0.713 & CHIEF\_COMPLAINTNeurological.Issue \\ 
-  8 & 1.324 & 0.250 & CHIEF\_COMPLAINTShortness.of.Breath \\ 
-  9 & 0.383 & 0.536 & CHIEF\_COMPLAINTSkin.Complaints \\ 
-  10 & 0.017 & 0.896 & CHIEF\_COMPLAINTUpper.Respiratory.Symptoms \\ 
-  11 & 0.011 & 0.915 & ESI\_1\_or\_2 \\ 
-  12 & 0.010 & 0.921 & ESI\_3\_or\_4\_or\_5 \\ 
-  13 & 19.102 & 0.000 & US\_PERF \\ 
-  14 & 53.401 & 0.000 & NON\_CON\_CT\_PERF \\ 
-  15 & 5.983 & 0.014 & CON\_CT\_PERF \\ 
-  16 & 135.571 & 0.000 & LAB\_PERF \\ 
-  17 & 314.610 & 0.000 & XR\_PERF \\ 
-  18 & 0.118 & 0.731 & tachycardic \\ 
-  19 & 0.043 & 0.836 & tachypneic \\ 
-  20 & 0.936 & 0.333 & febrile \\ 
-  21 & 1.127 & 0.288 & hypotensive \\ 
+1 & 1.401 & 0.096 & CHIEF\_COMPLAINTAbdominal.Complaints \\ 
+  2 & 1.029 & 0.423 & CHIEF\_COMPLAINTBack.or.Flank.Pain \\ 
+  3 & 1.042 & 0.406 & CHIEF\_COMPLAINTChest.Pain \\ 
+  4 & 0.992 & 0.472 & CHIEF\_COMPLAINTExtremity.Complaints \\ 
+  5 & 0.773 & 0.769 & CHIEF\_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma \\ 
+  6 & 1.027 & 0.425 & CHIEF\_COMPLAINTGastrointestinal.Issues \\ 
+  7 & 0.707 & 0.843 & CHIEF\_COMPLAINTNeurological.Issue \\ 
+  8 & 1.198 & 0.233 & CHIEF\_COMPLAINTShortness.of.Breath \\ 
+  9 & 1.021 & 0.433 & CHIEF\_COMPLAINTSkin.Complaints \\ 
+  10 & 1.239 & 0.197 & CHIEF\_COMPLAINTUpper.Respiratory.Symptoms \\ 
+  11 & 1.277 & 0.169 & ESI\_1\_or\_2 \\ 
+  12 & 1.277 & 0.169 & ESI\_3\_or\_4\_or\_5 \\ 
+  13 & 1.390 & 0.101 & tachycardic \\ 
+  14 & 1.176 & 0.254 & tachypneic \\ 
+  15 & 1.708 & 0.019 & febrile \\ 
+  16 & 1.055 & 0.390 & hypotensive \\ 
    \hline
 \end{tabular}
 \caption{Wald Test Results} 

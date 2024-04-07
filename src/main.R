@@ -9,12 +9,11 @@ library(stringr)
 library(lfe)
 library(lubridate)
 
-
 #=========================================================================
 # Determine test times
 #=========================================================================
 
-path <- '~/Dropbox/Batch vs sequential testing/Data/'
+path <- '~/Sue Goldie Dropbox/Jacob Jameson/Batch vs sequential testing/Data/'
 
 df <- read.csv(paste0(path, 'deidentified_FINAL.csv'))
 
@@ -39,6 +38,8 @@ for (i in test_columns){
 
 df$nEDTests = rowSums(df[test_columns])
 
+df$imgTests = df$nEDTests - df$LAB_PERF
+
 # Identify columns with *_REL suffix
 rel_cols <- grep("_REL$", names(df), value = TRUE)
 
@@ -55,18 +56,17 @@ df <- df %>%
 
 #=========================================================================
 # Determine batching
-#   - criteria: ordered within 5 minutes of each other
+#   - criteria: images ordered within 5 minutes of each other and the
 #               first tests ordered were in a batch
 #=========================================================================
 
-# Determine which was the first test ordered -----------------------------
 # Columns of interest
-
-cols_of_interest <- c('US_ORDER_DTTM_REL', 'NON_CON_CT_ORDER_REL', 'CON_CT_ORDER_REL',
-                      'LAB_ORDER_REL', 'XR_ORDER_REL')
+cols_of_interest <- c('US_ORDER_DTTM_REL', 'NON_CON_CT_ORDER_REL', 
+                      'CON_CT_ORDER_REL', 'XR_ORDER_REL')
 
 # Function to determine batch
 determine_batch <- function(row) {
+  
   min_time <- min(row, na.rm = TRUE)
   tests <- names(row)
   
@@ -78,96 +78,27 @@ determine_batch <- function(row) {
 # Apply function to each row for the columns of interest
 df$batch <- apply(df[cols_of_interest], 1, determine_batch)
 
-#=========================================================================
-# Lab-Image Batch --------------------------------------------------------
-#=========================================================================
-# Function to determine if a batch meets the criteria
-is_lab_image_batch <- function(batch) {
-  lab_present <- grepl("LAB_ORDER_REL", batch)
-  other_tests_present <- any(sapply(c('US_ORDER_DTTM_REL',
-                                      'NON_CON_CT_ORDER_REL', 
-                                      'CON_CT_ORDER_REL', 
-                                      'XR_ORDER_REL'), function(test) grepl(test, batch)))
-  
-  return(as.integer(lab_present & other_tests_present))
-}
+# Determine all tests that were ordered
+df$all_tests <- apply(df[cols_of_interest], 1, function(row) {
+  tests <- names(row)
+  return(paste(tests[!is.na(row)], collapse = ","))
+})
 
-df$lab_image_batch <- sapply(df$batch, is_lab_image_batch)
-
-#=========================================================================
-# Image-Image Batch ------------------------------------------------------
-#=========================================================================
-# Function to determine if a batch meets the criteria for image_image_batch
-is_image_image_batch <- function(batch) {
-  image_tests <- c('US_ORDER_DTTM_REL', 'NON_CON_CT_ORDER_REL', 
-                   'CON_CT_ORDER_REL', 'XR_ORDER_REL')
+# get the difference between batched tests and all tests
+df$diff <- apply(df, 1, function(row) {
+  batch <- unlist(strsplit(as.character(row["batch"]), ","))
+  all_tests <- unlist(strsplit(as.character(row["all_tests"]), ","))
   
-  batch_tests <- unlist(strsplit(batch, ","))
-  count_present <- sum(image_tests %in% batch_tests)
+  diff <- setdiff(all_tests, batch)
   
-  return(as.integer(count_present >= 2))
-}
-
-df$image_image_batch <- sapply(df$batch, is_image_image_batch)
-
-#=========================================================================
-# Any Batch --------------------------------------------------------------
-#=========================================================================
-
-df$any.batch <- ifelse(
-  df$lab_image_batch == 1 | df$image_image_batch == 1, 1, 0
-)
-
-
-# Function to determine the sequenced tests
-get_sequenced <- function(batch, row) {
-  all_tests <- c('US_ORDER_DTTM_REL', 'NON_CON_CT_ORDER_REL', 
-                 'CON_CT_ORDER_REL', 'LAB_ORDER_REL', 'XR_ORDER_REL')
-  
-  batch_tests <- unlist(strsplit(batch, ","))
-  
-  # Identify tests not in the batch
-  non_batch_tests <- setdiff(all_tests, batch_tests)
-  
-  # Check if any of these tests have a non-NA value in the current row
-  sequenced_tests <- non_batch_tests[!is.na(row[non_batch_tests])]
-  
-  if (length(sequenced_tests) > 0) {
-    return(paste(sequenced_tests, collapse = ","))
+  if (length(diff) > 0) {
+    return(paste(diff, collapse = ","))
   } else {
     return(NA)
   }
-}
+})
 
-df$sequenced <- apply(df, 1, function(row) get_sequenced(as.character(row["batch"]), row))
-
-#=========================================================================
-# Clean Vars -------------------------------------------------------------
-#=========================================================================
-
-df$PATIENT_RACE <- str_to_lower(df$PATIENT_RACE)
-
-df <- df %>%
-  mutate(race = case_when(
-    grepl('black', PATIENT_RACE, fixed = TRUE) ~ "black",
-    grepl('african', PATIENT_RACE, fixed = TRUE) ~ "black",
-    grepl('asian', PATIENT_RACE, fixed = TRUE) ~ "asian",
-    grepl('pacific islander', PATIENT_RACE, fixed = TRUE) ~ "asian",
-    grepl('native', PATIENT_RACE, fixed = TRUE)~ "native",
-    grepl('samoan', PATIENT_RACE, fixed = TRUE) ~ "other",
-    grepl('guamanian or chamorro', PATIENT_RACE, fixed = TRUE) ~ "other",
-    grepl('white', PATIENT_RACE, fixed = TRUE) ~ "white",
-    grepl('unknown', PATIENT_RACE, fixed = TRUE) ~ "unknown",
-    grepl('choose not to disclose', PATIENT_RACE, fixed = TRUE) ~ "unknown",
-    grepl('unable to provide', PATIENT_RACE, fixed = TRUE) ~ "unknown",
-    grepl('other', PATIENT_RACE, fixed = TRUE) ~ "other",
-    grepl('', PATIENT_RACE, fixed = TRUE) ~ "unknown",
-    TRUE ~ PATIENT_RACE))
-
-df$ARRIVAL_AGE_DI <- ifelse(
-  df$ARRIVAL_AGE_DI == '85+', '85', df$ARRIVAL_AGE_DI
-)
-df$ARRIVAL_AGE_DI <- as.numeric(df$ARRIVAL_AGE_DI)
+df$batched <- ifelse(str_count(df$batch, ",") > 0, 1, 0)
 
 #=========================================================================
 # Clean Chief Complaint --------------------------------------------------
@@ -476,11 +407,6 @@ df <- df %>%
   mutate(rel_minutes_arrival = ARRIVAL_DTTM_REL,
          rel_minutes_depart = rel_minutes_arrival + ED_LOS)
 
-# Calculate the number of patients in the hospital at the time of each patient's arrival
-df$patients_in_hospital <- sapply(df$rel_minutes_arrival, function(arrival_time) {
-  sum(df$rel_minutes_arrival <= arrival_time & df$rel_minutes_depart > arrival_time) - 1
-})
-
 # Define arbitrary start date
 start_date <- as.POSIXct("2000-01-01 00:00:00", tz = "UTC")
 
@@ -489,10 +415,12 @@ df$datetime <- start_date + minutes(df$rel_minutes_arrival)
 
 # Extract hour of day, day of week, and month of year
 df$hour_of_day <- hour(df$datetime)
+df$hour_of_day <- cut(df$hour_of_day, breaks = c(-Inf, 6, 12, 18, Inf), 
+                      labels = c("Block 1", "Block 2", "Block 3", "Block 4"))
+
 df$day_of_week <- weekdays(df$datetime)
 df$month_of_year <- month(df$datetime, label = TRUE)
 df$dayofweekt <- paste(df$day_of_week, df$hour_of_day)
-
 
 #=========================================================================
 # Create Final Dataset ---------------------------------------------------
@@ -503,10 +431,6 @@ df$ln_ED_LOS <- log(df$ED_LOS)
 final <- df %>% 
   mutate(RTN_72_HR = ifelse(RTN_72_HR == 'Y', 1, 0),
          RTN_72_HR_ADMIT = ifelse(RTN_72_HR_ADMIT == 'Y', 1, 0)) 
-
-final$age_groups <- cut(final$ARRIVAL_AGE_DI, 
-                        c(-Inf, 20, 45, 65, Inf),
-                        labels = c("<20", "20-45", "45-65", "65+"))
 
 final$admit = ifelse(final$ED_DISPOSITION == 'Admit', 1, 0)
 final$discharge = ifelse(final$ED_DISPOSITION == 'Discharge', 1, 0)
@@ -519,71 +443,36 @@ final <- final %>%
     observation == 1 ~ 'observeration',
     TRUE ~ 'other')) 
 
-# Get Leave-one-out avg tests performed
-final <- final %>%
-  group_by(ED_PROVIDER) %>%
-  mutate(total_tests = sum(nEDTests),
-         n = n()) %>%
-  ungroup() %>%
-  mutate(avg_nEDTests = (total_tests - nEDTests)/ (n-1))
-
 # Limit dataset to only physicians that had more than 520 encounters
 provider_counts <- table(final$ED_PROVIDER)
 providers_less_than_500 <- names(provider_counts[provider_counts < 520])
 final <- final[!(final$ED_PROVIDER %in% providers_less_than_500), ]
 final$complaint_esi <- paste(final$CHIEF_COMPLAINT, final$ESI)
 
-# Limit to prevalent complaints only
-final <- final %>%
-  group_by(CHIEF_COMPLAINT) %>%
-  filter(n() > 1000)
-
-
-# write code to determine the standardized batching rate for each provider
-batch_rates <- final %>% 
-  group_by(ED_PROVIDER) %>%
-  summarise(batch_rate = mean(any.batch, na.rm=T)) %>%
-  ungroup() %>%
-  mutate(z_batch_rate = as.vector(scale(batch_rate)),
-         batcher = ifelse(z_batch_rate > 0, 'Batcher', 'Non-Batcher'))
-
-final <- merge(final, batch_rates, on=c('ED_PROVIER'))
-
-rm(list = setdiff(ls(), "final"))
-
-#=========================================================================
-##########################################################################
-#=========================================================================
-# IV Construction --------------------------------------------------------
-#=========================================================================
-##########################################################################
-
 # Step 1: leave-out residualize at the ED encounter level
 ## conditional on shift-level variation, random assignment
 ## residual from regression represents physician tendency to batch
 final$residual_batch <- resid(
-  felm(any.batch ~ 0 | dayofweekt + month_of_year, data=final))
-
-final$residual_batch_li <- resid(
-  felm(lab_image_batch ~ 0 | dayofweekt + month_of_year, data=final))
-
-final$residual_batch_ii <- resid(
-  felm(image_image_batch ~ 0 | dayofweekt + month_of_year, data=final))
+  felm(batched ~ 0 | dayofweekt + month_of_year + complaint_esi|0|ED_PROVIDER, data=final))
 
 # Step 2: get batch tendency for each provider
 final <- final %>%
   group_by(ED_PROVIDER) %>%
   mutate(Sum_Resid=sum(residual_batch, na.rm=T),
-         batch.tendency = (Sum_Resid - residual_batch) / (n() - 1),
-         
-         Sum_Resid_li=sum(residual_batch_li, na.rm=T),
-         batch.tendency_li = (Sum_Resid_li - residual_batch_li) / (n() - 1),
-         
-         Sum_Resid_ii=sum(residual_batch_ii, na.rm=T),
-         batch.tendency_ii = (Sum_Resid_ii - residual_batch_ii) / (n() - 1),
-         
-         avg.batch.tendency = mean(batch.tendency)) %>%
+         batch.tendency = (Sum_Resid - residual_batch) / (n() - 1)) %>%
   ungroup()
+
+
+# Limit to prevalent complaints only
+final <- final %>%
+  group_by(CHIEF_COMPLAINT) %>%
+  filter(n() > 1000) %>%
+  ungroup() %>%
+  filter(is.na(ESI) == F, ED_LOS < 6000, ED_LOS > 0)
+
+final$batch.tendency <- as.vector(scale(final$batch.tendency))
+
+rm(list = setdiff(ls(), "final"))
 
 write.csv(final, 'outputs/data/final.csv')
 #=========================================================================
