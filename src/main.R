@@ -30,8 +30,6 @@ colnames(df)[colnames(df) == "PLAIN_XRAY_ORDER_DTTM_REL"] ="XR_ORDER_REL"
 
 df$CT_PERF = ifelse(df$NON_CON_CT_PERF=='Y' | df$CON_CT_PERF=='Y', 1, 0)
 
-df$ESI = as.character(df$ESI)
-
 for (i in test_columns){
   df[[i]] = ifelse(df[[i]] =='Y', 1, 0) 
 }
@@ -378,6 +376,8 @@ for (i in seq(1,length(complaints))){
   )
 }
 
+df$ESI = as.character(df$ESI)
+
 df <- df %>%
   mutate(complaint_esi  = paste(ESI, CHIEF_COMPLAINT),
          complaint_esi = factor(complaint_esi))
@@ -422,6 +422,15 @@ df$day_of_week <- weekdays(df$datetime)
 df$month_of_year <- month(df$datetime, label = TRUE)
 df$dayofweekt <- paste(df$day_of_week, df$hour_of_day)
 
+# Calculate the number of patients in the hospital at the time of 
+# each patient's arrival
+df$patients_in_hospital <- sapply(df$rel_minutes_arrival, 
+                                  function(arrival_time) {
+  sum(df$rel_minutes_arrival <= arrival_time & 
+      df$rel_minutes_depart > arrival_time
+      ) - 1
+})
+
 #=========================================================================
 # Create Final Dataset ---------------------------------------------------
 #=========================================================================
@@ -449,26 +458,33 @@ providers_less_than_500 <- names(provider_counts[provider_counts < 520])
 final <- final[!(final$ED_PROVIDER %in% providers_less_than_500), ]
 final$complaint_esi <- paste(final$CHIEF_COMPLAINT, final$ESI)
 
-# Step 1: leave-out residualize at the ED encounter level
-## conditional on shift-level variation, random assignment
-## residual from regression represents physician tendency to batch
-final$residual_batch <- resid(
-  felm(batched ~ 0 | dayofweekt + month_of_year + complaint_esi|0|ED_PROVIDER, data=final))
-
-# Step 2: get batch tendency for each provider
-final <- final %>%
-  group_by(ED_PROVIDER) %>%
-  mutate(Sum_Resid=sum(residual_batch, na.rm=T),
-         batch.tendency = (Sum_Resid - residual_batch) / (n() - 1)) %>%
-  ungroup()
-
-
 # Limit to prevalent complaints only
 final <- final %>%
   group_by(CHIEF_COMPLAINT) %>%
   filter(n() > 1000) %>%
   ungroup() %>%
   filter(is.na(ESI) == F, ED_LOS < 6000, ED_LOS > 0)
+
+#=========================================================================
+# Create Batch Tendency -------------------------------------------------
+#=========================================================================
+
+# Step 1: fit a logistic regression model to predict batched
+frmla <- as.formula(
+  "batched ~ ED_PROVIDER + dayofweekt + month_of_year + complaint_esi +
+   hypotensive + tachycardic + tachypneic + febrile"
+  )
+
+glm_model <- glm(frmla, data = final, family = 'binomial')
+
+final$predicted_prob <- predict(glm_model, type = 'response')
+
+# Step 2: get a leave one out probability for each provider
+final <- final %>%
+  group_by(ED_PROVIDER) %>%
+  mutate(Sum_prob=sum(predicted_prob, na.rm=T),
+         batch.tendency = (Sum_prob - predicted_prob) / (n() - 1)) %>%
+  ungroup()
 
 final$batch.tendency <- as.vector(scale(final$batch.tendency))
 
