@@ -1,5 +1,9 @@
+
+> print(xtable(balance_stats[,c(2,3,4)], 
++              caption = "Wald Test Results", 
++              digits = c(0,3,3,0)), type = "latex")
 % latex table generated in R 4.3.3 by xtable 1.8-4 package
-% Sat Apr 20 12:11:02 2024
+% Sat May  4 16:02:18 2024
 \begin{table}[ht]
 \centering
 \begin{tabular}{rrrl}
@@ -26,3 +30,5 @@
 \end{tabular}
 \caption{Wald Test Results} 
 \end{table}
+
+> sink()

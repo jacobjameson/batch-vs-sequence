@@ -2,27 +2,13 @@
 # Purpose: Generate Figures and Tables for the Manuscript
 # Author: Jacob Jameson 
 #=========================================================================
-rm(list = ls()) 
 
-library(tidyverse)
-library(caret)
-library(sandwich)
-library(xtable)
-library(lmtest)
-library(gtsummary)
-library(marginaleffects)
-library(scales)  # For percent_format
-library(stringr) # For str_wrap
-library(lfe)
-library(ggeffects)
-
-data <- read_csv('outputs/data/final.csv')
 
 ##########################################################################
 #=========================================================================
 # Table 1: Balance Table (Wald Test) across Physicians                   #
                                                                          #
-#Table 1 reports the results of a Wald test, which was conducted to      #
+# Table 1 reports the results of a Wald test, which was conducted to      #
 # assess the balance of chief complaints across physicians in our        #
 # dataset. We created chief complaint categories before analysis         #
 # by grouping similar presenting issues. Vital signs were categorized    #
@@ -109,11 +95,13 @@ sink()
 
 ##########################################################################
 #=========================================================================
-# Figure 1: Variation in Physician Batch Rate by Chief Complaint         #
+# Figure 2: Variation in Physician Batch Rate by Chief Complaint         #
 #                                                                        #
-# Figure 1 displays the variation in batch rate by chief complaint       #
-# for each physician. The batch rate is the proportion of patients       #
-# seen by a physician who had their tests batch ordered.                 #
+# Figure 2 illuminates the marked differences among physicians in their
+# propensity to batch order imaging tests. The 24 physicians are 
+# represented with points, revealing that specific complaint areas 
+# have more variance than others regarding differing batch rates 
+# among physicians              
 #=========================================================================
 
 data_for_plot <- data
@@ -179,7 +167,6 @@ ggsave("outputs/figures/Figure 1.png",
 # Figure 2: Relationship between Batch Tendency and Batching             #
 #=========================================================================
 ##########################################################################
-
 
 model <- glm(batched ~ batch.tendency + 
              dayofweekt + month_of_year +
@@ -249,7 +236,6 @@ data.p %>%
        title = 'Relationship between Batch Tendency and Batch-Ordering Probability')
 
 ggsave("outputs/figures/Figure 2.png", width = 11.5, height = 7, bg = 'white')
-
 
 ##########################################################################
 #=========================================================================
@@ -321,15 +307,15 @@ model.3a <- felm(imgTests ~ batch.tendency  |
                   ED_PROVIDER, data = data)
 
 
-model.1b <- felm(ln_ED_LOS ~ batch.tendency | LAB_PERF +
+model.1b <- felm(ln_ED_LOS ~ batch.tendency + patients_in_hospital | LAB_PERF +
                   dayofweekt + month_of_year + complaint_esi|0|
                   ED_PROVIDER, data = data)
 
-model.2b <- felm(RTN_72_HR ~ batch.tendency | LAB_PERF +
+model.2b <- felm(RTN_72_HR ~ batch.tendency + patients_in_hospital | LAB_PERF +
                   dayofweekt + month_of_year + complaint_esi|0|
                   ED_PROVIDER, data = data)
 
-model.3b <- felm(imgTests ~ batch.tendency  | LAB_PERF +
+model.3b <- felm(imgTests ~ batch.tendency + patients_in_hospital  | LAB_PERF +
                   dayofweekt + month_of_year + complaint_esi|0|
                   ED_PROVIDER, data = data)
 

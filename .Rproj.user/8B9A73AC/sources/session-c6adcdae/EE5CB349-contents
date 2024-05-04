@@ -1,0 +1,34 @@
+
+> print(xtable(balance_stats[,c(2,3,4)], 
++              caption = "Wald Test Results", 
++              digits = c(0,3,3,0)), type = "latex")
+% latex table generated in R 4.3.3 by xtable 1.8-4 package
+% Sat May  4 16:02:18 2024
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrl}
+  \hline
+ & F & Pr..F. & dummy\_var \\ 
+  \hline
+1 & 1.401 & 0.096 & CHIEF\_COMPLAINTAbdominal.Complaints \\ 
+  2 & 1.029 & 0.423 & CHIEF\_COMPLAINTBack.or.Flank.Pain \\ 
+  3 & 1.042 & 0.406 & CHIEF\_COMPLAINTChest.Pain \\ 
+  4 & 0.992 & 0.472 & CHIEF\_COMPLAINTExtremity.Complaints \\ 
+  5 & 0.773 & 0.769 & CHIEF\_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma \\ 
+  6 & 1.027 & 0.425 & CHIEF\_COMPLAINTGastrointestinal.Issues \\ 
+  7 & 0.707 & 0.843 & CHIEF\_COMPLAINTNeurological.Issue \\ 
+  8 & 1.198 & 0.233 & CHIEF\_COMPLAINTShortness.of.Breath \\ 
+  9 & 1.021 & 0.433 & CHIEF\_COMPLAINTSkin.Complaints \\ 
+  10 & 1.239 & 0.197 & CHIEF\_COMPLAINTUpper.Respiratory.Symptoms \\ 
+  11 & 1.277 & 0.169 & ESI\_1\_or\_2 \\ 
+  12 & 1.277 & 0.169 & ESI\_3\_or\_4\_or\_5 \\ 
+  13 & 1.390 & 0.101 & tachycardic \\ 
+  14 & 1.176 & 0.254 & tachypneic \\ 
+  15 & 1.708 & 0.019 & febrile \\ 
+  16 & 1.055 & 0.390 & hypotensive \\ 
+   \hline
+\end{tabular}
+\caption{Wald Test Results} 
+\end{table}
+
+> sink()

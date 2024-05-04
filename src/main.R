@@ -2,12 +2,6 @@
 # Purpose: Main R file for Preparing/Cleaning Data
 # Author: Jacob Jameson 
 #=========================================================================
-rm(list = ls()) 
-
-library(tidyverse)
-library(stringr)
-library(lfe)
-library(lubridate)
 
 #=========================================================================
 # Determine test times
@@ -490,5 +484,5 @@ final$batch.tendency <- as.vector(scale(final$batch.tendency))
 
 rm(list = setdiff(ls(), "final"))
 
-write.csv(final, 'outputs/data/final.csv')
+data <- final
 #=========================================================================
