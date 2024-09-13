@@ -1,34 +1,79 @@
-
-> print(xtable(balance_stats[,c(2,3,4)], 
-+              caption = "Wald Test Results", 
-+              digits = c(0,3,3,0)), type = "latex")
-% latex table generated in R 4.3.3 by xtable 1.8-4 package
-% Sat May  4 16:02:18 2024
-\begin{table}[ht]
-\centering
-\begin{tabular}{rrrl}
-  \hline
- & F & Pr..F. & dummy\_var \\ 
-  \hline
-1 & 1.401 & 0.096 & CHIEF\_COMPLAINTAbdominal.Complaints \\ 
-  2 & 1.029 & 0.423 & CHIEF\_COMPLAINTBack.or.Flank.Pain \\ 
-  3 & 1.042 & 0.406 & CHIEF\_COMPLAINTChest.Pain \\ 
-  4 & 0.992 & 0.472 & CHIEF\_COMPLAINTExtremity.Complaints \\ 
-  5 & 0.773 & 0.769 & CHIEF\_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma \\ 
-  6 & 1.027 & 0.425 & CHIEF\_COMPLAINTGastrointestinal.Issues \\ 
-  7 & 0.707 & 0.843 & CHIEF\_COMPLAINTNeurological.Issue \\ 
-  8 & 1.198 & 0.233 & CHIEF\_COMPLAINTShortness.of.Breath \\ 
-  9 & 1.021 & 0.433 & CHIEF\_COMPLAINTSkin.Complaints \\ 
-  10 & 1.239 & 0.197 & CHIEF\_COMPLAINTUpper.Respiratory.Symptoms \\ 
-  11 & 1.277 & 0.169 & ESI\_1\_or\_2 \\ 
-  12 & 1.277 & 0.169 & ESI\_3\_or\_4\_or\_5 \\ 
-  13 & 1.390 & 0.101 & tachycardic \\ 
-  14 & 1.176 & 0.254 & tachypneic \\ 
-  15 & 1.708 & 0.019 & febrile \\ 
-  16 & 1.055 & 0.390 & hypotensive \\ 
-   \hline
-\end{tabular}
-\caption{Wald Test Results} 
-\end{table}
-
-> sink()
+# A tibble: 50 × 2
+   variable                                                                     value
+   <chr>                                                                        <dbl>
+ 1 CHIEF_COMPLAINTAbdominal.Complaints_mean                                   0.144  
+ 2 CHIEF_COMPLAINTAbdominal.Complaints_sum                                 6231      
+ 3 CHIEF_COMPLAINTAbnormal.Test.Results_mean                                  0.0419 
+ 4 CHIEF_COMPLAINTAbnormal.Test.Results_sum                                1816      
+ 5 CHIEF_COMPLAINTBack.or.Flank.Pain_mean                                     0.0589 
+ 6 CHIEF_COMPLAINTBack.or.Flank.Pain_sum                                   2550      
+ 7 CHIEF_COMPLAINTCardiac.Arrhythmias_mean                                    0.0241 
+ 8 CHIEF_COMPLAINTCardiac.Arrhythmias_sum                                  1044      
+ 9 CHIEF_COMPLAINTChest.Pain_mean                                             0.0813 
+10 CHIEF_COMPLAINTChest.Pain_sum                                           3521      
+11 CHIEF_COMPLAINTDizziness.Lightheadedness.Syncope_mean                      0.0437 
+12 CHIEF_COMPLAINTDizziness.Lightheadedness.Syncope_sum                    1894      
+13 CHIEF_COMPLAINTExtremity.Complaints_mean                                   0.121  
+14 CHIEF_COMPLAINTExtremity.Complaints_sum                                 5259      
+15 CHIEF_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma_mean     0.0550 
+16 CHIEF_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma_sum   2381      
+17 CHIEF_COMPLAINTFatigue.and.Weakness_mean                                   0.0345 
+18 CHIEF_COMPLAINTFatigue.and.Weakness_sum                                 1494      
+19 CHIEF_COMPLAINTFevers..Sweats.or.Chills_mean                               0.0425 
+20 CHIEF_COMPLAINTFevers..Sweats.or.Chills_sum                             1842      
+21 CHIEF_COMPLAINTGastrointestinal.Issues_mean                                0.0767 
+22 CHIEF_COMPLAINTGastrointestinal.Issues_sum                              3323      
+23 CHIEF_COMPLAINTNeurological.Issue_mean                                     0.0806 
+24 CHIEF_COMPLAINTNeurological.Issue_sum                                   3492      
+25 CHIEF_COMPLAINTShortness.of.Breath_mean                                    0.0684 
+26 CHIEF_COMPLAINTShortness.of.Breath_sum                                  2962      
+27 CHIEF_COMPLAINTSkin.Complaints_mean                                        0.0503 
+28 CHIEF_COMPLAINTSkin.Complaints_sum                                      2176      
+29 CHIEF_COMPLAINTUpper.Respiratory.Symptoms_mean                             0.0442 
+30 CHIEF_COMPLAINTUpper.Respiratory.Symptoms_sum                           1915      
+31 CHIEF_COMPLAINTUrinary.Complaints_mean                                     0.0323 
+32 CHIEF_COMPLAINTUrinary.Complaints_sum                                   1399      
+33 ESI1_mean                                                                  0.0104 
+34 ESI1_sum                                                                 450      
+35 ESI2_mean                                                                  0.311  
+36 ESI2_sum                                                               13463      
+37 ESI3_mean                                                                  0.570  
+38 ESI3_sum                                                               24679      
+39 ESI4_mean                                                                  0.106  
+40 ESI4_sum                                                                4572      
+41 ESI5_mean                                                                  0.00312
+42 ESI5_sum                                                                 135      
+43 tachycardic_mean                                                           0.193  
+44 tachycardic_sum                                                         8360      
+45 tachypneic_mean                                                            0.0923 
+46 tachypneic_sum                                                          3996      
+47 febrile_mean                                                               0.0236 
+48 febrile_sum                                                             1021      
+49 hypotensive_mean                                                           0.0149 
+50 hypotensive_sum                                                          645      
+                                                           dummy_var Df         F      Pr..F. adj_p_value
+1                                CHIEF_COMPLAINTAbdominal.Complaints 23 1.4006697 0.095829622  1.00000000
+2                               CHIEF_COMPLAINTAbnormal.Test.Results 23 2.0148717 0.002721964  0.06804911
+3                                  CHIEF_COMPLAINTBack.or.Flank.Pain 23 1.0289074 0.422596660  1.00000000
+4                                 CHIEF_COMPLAINTCardiac.Arrhythmias 23 0.9120347 0.582504182  1.00000000
+5                                          CHIEF_COMPLAINTChest.Pain 23 1.0421566 0.405538953  1.00000000
+6                   CHIEF_COMPLAINTDizziness.Lightheadedness.Syncope 23 0.9213847 0.569375671  1.00000000
+7                                CHIEF_COMPLAINTExtremity.Complaints 23 0.9915414 0.472206555  1.00000000
+8  CHIEF_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma 23 0.7730619 0.769253117  1.00000000
+9                                CHIEF_COMPLAINTFatigue.and.Weakness 23 0.6813806 0.868917106  1.00000000
+10                           CHIEF_COMPLAINTFevers..Sweats.or.Chills 23 1.1318852 0.299365092  1.00000000
+11                            CHIEF_COMPLAINTGastrointestinal.Issues 23 1.0269883 0.425092364  1.00000000
+12                                 CHIEF_COMPLAINTNeurological.Issue 23 0.7074146 0.843405458  1.00000000
+13                                CHIEF_COMPLAINTShortness.of.Breath 23 1.1983358 0.232893399  1.00000000
+14                                    CHIEF_COMPLAINTSkin.Complaints 23 1.0209847 0.432939298  1.00000000
+15                         CHIEF_COMPLAINTUpper.Respiratory.Symptoms 23 1.2394516 0.197288513  1.00000000
+16                                 CHIEF_COMPLAINTUrinary.Complaints 23 1.8369172 0.008514110  0.21285275
+17                                                              ESI1 23 0.8844376 0.621189309  1.00000000
+18                                                              ESI2 23 1.3046679 0.149279944  1.00000000
+19                                                              ESI3 23 0.8671306 0.645272753  1.00000000
+20                                                              ESI4 23 1.4140625 0.089819915  1.00000000
+21                                                              ESI5 23 1.3023484 0.150815895  1.00000000
+22                                                       tachycardic 23 1.3902885 0.100714958  1.00000000
+23                                                        tachypneic 23 1.1756119 0.254388245  1.00000000
+24                                                           febrile 23 1.7078633 0.018516507  0.46291266
+25                                                       hypotensive 23 1.0545875 0.389824313  1.00000000

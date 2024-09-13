@@ -18,6 +18,9 @@ library(marginaleffects)
 library(scales)  # For percent_format
 library(stringr) # For str_wrap
 library(ggeffects)
+library(pals)
+library(ggsci)
+library(ggthemes)
 
 
 # Create log file

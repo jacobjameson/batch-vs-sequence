@@ -56,6 +56,34 @@ df <- df %>%
 cols_of_interest <- c('US_ORDER_DTTM_REL', 'NON_CON_CT_ORDER_REL', 
                       'CON_CT_ORDER_REL', 'XR_ORDER_REL')
 
+# Function to check if any two values are within 5 of each other, robust to NA values
+check_within_five <- function(row) {
+  # Extract only the columns of interest for the current row
+  vals <- as.numeric(row[cols_of_interest])
+  
+  # Remove NA values to avoid false comparisons
+  vals <- na.omit(vals)
+  
+  # Ensure there are at least two values to compare
+  if (length(vals) < 2) {
+    return(FALSE)
+  }
+  
+  # Check each combination of columns
+  for (i in 1:(length(vals) - 1)) {
+    for (j in (i + 1):length(vals)) {
+      if (abs(vals[i] - vals[j]) <= 5) {
+        return(TRUE)
+      }
+    }
+  }
+  return(FALSE)
+}
+
+# Apply the function to each row of the dataframe
+df$within_five <- apply(df[cols_of_interest], 1, check_within_five)
+df$within_five <- as.numeric(df$within_five)
+
 # Function to determine batch
 determine_batch <- function(row) {
   
@@ -402,10 +430,10 @@ df <- df %>%
          rel_minutes_depart = rel_minutes_arrival + ED_LOS)
 
 # Define arbitrary start date
-start_date <- as.POSIXct("2000-01-01 00:00:00", tz = "UTC")
+start_date <- as.POSIXct("2018-10-06 00:00:00", tz = "UTC")
 
 # Convert relative minutes to datetime
-df$datetime <- start_date + minutes(df$rel_minutes_arrival)
+df$datetime <- start_date + minutes(df$rel_minutes_arrival) - minutes(min(df$rel_minutes_arrival))
 
 # Extract hour of day, day of week, and month of year
 df$hour_of_day <- hour(df$datetime)
@@ -437,7 +465,7 @@ final <- df %>%
 
 final$admit = ifelse(final$ED_DISPOSITION == 'Admit', 1, 0)
 final$discharge = ifelse(final$ED_DISPOSITION == 'Discharge', 1, 0)
-final$observation = ifelse(final$ED_DISPOSITION == 'Observation', 1, 0)
+final$observation = ifelse(final$ED_DISPOSITION == 'Hospital Observation', 1, 0)
 
 final <- final %>%
   mutate(dispo = case_when(
@@ -463,15 +491,38 @@ final <- final %>%
 # Create Batch Tendency -------------------------------------------------
 #=========================================================================
 
-# Step 1: fit a logistic regression model to predict batched
-frmla <- as.formula(
-  "batched ~ ED_PROVIDER + dayofweekt + month_of_year + complaint_esi +
-   hypotensive + tachycardic + tachypneic + febrile"
+library(caret)
+library(pROC)
+
+# Assuming 'final' is your dataset
+set.seed(123) 
+predictions <- c()
+
+final$fold <- sample(1:10, nrow(final), replace = TRUE)
+final <- arrange(final, fold)
+
+for (i in 1:10) {
+  # Split the data into training and testing sets
+  
+  train_data <- final[final$fold != i, ]
+  test_data <- final[final$fold == i, ]
+  
+  # Create the formula
+  frmla <- as.formula(
+    "within_five ~ ED_PROVIDER + dayofweekt + month_of_year + CHIEF_COMPLAINT*ESI +
+     hypotensive + tachycardic + tachypneic + febrile"
   )
+  
+  # Train the model
+  model <- glm(frmla, data = train_data, family = "binomial")
+  
+  # Make predictions
+  predictions <- c(predictions, predict(model, test_data, type = "response"))
+  print(i)
+}
 
-glm_model <- glm(frmla, data = final, family = 'binomial')
+final$predicted_prob <- predictions
 
-final$predicted_prob <- predict(glm_model, type = 'response')
 
 # Step 2: get a leave one out probability for each provider
 final <- final %>%
@@ -481,6 +532,81 @@ final <- final %>%
   ungroup()
 
 final$batch.tendency <- as.vector(scale(final$batch.tendency))
+
+
+test <- final %>%
+  filter(datetime >= '2019-10-01') 
+
+train <- final %>%
+  filter(datetime < '2019-10-01') 
+
+# Step 3: fit a logistic regression model to predict batched
+frmla <- as.formula(
+  "batched ~ ED_PROVIDER + dayofweekt + month_of_year + CHIEF_COMPLAINT*ESI  +
+   hypotensive + tachycardic + tachypneic + febrile"
+)
+
+glm_model <- glm(frmla, data = train, family = 'binomial')
+
+test$predicted_prob <- predict(glm_model, test, type = 'response')
+
+
+roc_obj1 <- roc(final$batched, final$predicted_prob)
+roc_obj2 <- roc(test$batched, test$predicted_prob)
+
+# Create a data frame for ggplot
+roc_data1 <- data.frame(
+  specificity = 1 - roc_obj1$specificities,
+  sensitivity = roc_obj1$sensitivities,
+  model = "10-fold CV"
+)
+
+roc_data2 <- data.frame(
+  specificity = 1 - roc_obj2$specificities,
+  sensitivity = roc_obj2$sensitivities,
+  model = "Test Set (Last 2 Months)"
+)
+
+roc_data <- rbind(roc_data1, roc_data2)
+
+# Calculate AUCs
+auc1 <- auc(roc_obj1)
+auc2 <- auc(roc_obj2)
+
+roc_data <- roc_data %>%
+  mutate(model = case_when(
+    model == "10-fold CV" ~ paste0("10-fold CV AUC: ", round(auc1, 3)),
+    model == "Test Set (Last 2 Months)" ~ paste0("Test Set (Last 2 Months) AUC: ", round(auc2, 3))
+  ))
+
+ggplot(roc_data, aes(x = specificity, y = sensitivity, color = model)) +
+  geom_line(size = 1) +
+  scale_color_brewer(palette = 'Set1') +  
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray") +
+  coord_equal() +
+  labs(
+    x = "1 - Specificity",
+    y = "Sensitivity",
+    title = "ROC Curves Comparison\n",
+    color = "Method for Predicting Batched Status"
+  ) +
+  theme_minimal(base_size = 18) +  
+  theme(
+    plot.background = element_rect(fill = 'white', color = NA), 
+    axis.text = element_text(color = 'black', size = 18),  
+    plot.title = element_text(size = 22, face = 'bold', hjust = 0.5, color = 'black'),
+    plot.margin = margin(t = 1, r = 0.2, b = 0.2, l = 0.2, unit = "cm"),
+    panel.grid.major = element_line(color = 'grey85', size = 0.3),
+    panel.grid.minor = element_blank(),  
+    legend.position = c(0.6, 0.1),  # Position legend inside the plot
+    legend.background = element_rect(fill = "white", color = "black", size = 0.5),
+    legend.margin = margin(6, 6, 6, 6), 
+    axis.title = element_text(size = 20, color = 'black'),  
+    strip.text.x = element_text(size = 18, face = "bold", color = 'black') ,
+    axis.line = element_line(colour = "black")
+  ) 
+
+ggsave("roc_curves.png", width = 9.5, height = 8, dpi = 300)
 
 rm(list = setdiff(ls(), "final"))
 
