@@ -1,5 +1,8 @@
 # Variation in batch ordering of imaging tests in the emergency department and the impact on care delivery
 
+[![DOI](https://zenodo.org/badge/661395359.svg)](https://doi.org/10.5281/zenodo.14029337)
+
+
 ## Overview
 This study examines heterogeneity in physician batch ordering practices and their impact on patient outcomes and resource utilization in emergency departments (ED). We analyze how different diagnostic test ordering strategies - batch ordering (multiple tests at once) versus sequential ordering - affect key healthcare metrics using comprehensive EMR data from Mayo Clinic of Arizona ED.
 
