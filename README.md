@@ -49,5 +49,12 @@ For questions about this research or repository:
 - **Email**: jacobjameson@g.harvard.edu
 
 ## Citation
-If you use this code in your research, please cite:
-[Citation information to be added upon publication]
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: Jacob
+  given-names: Jameson
+orcid: https://orcid.org/0009-0000-6980-2982
+title:jacobjameson/batch-vs-sequence: HSR Final
+version: v1.0.0
+date-released: 2024-11-02
