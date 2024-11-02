@@ -490,39 +490,35 @@ final <- final %>%
 #=========================================================================
 # Create Batch Tendency -------------------------------------------------
 #=========================================================================
-
-library(caret)
-library(pROC)
-
-# Assuming 'final' is your dataset
 set.seed(123) 
-predictions <- c()
 
 final$fold <- sample(1:10, nrow(final), replace = TRUE)
 final <- arrange(final, fold)
 
+# Pre-allocate predictions
+predictions <- numeric(nrow(final))
+
+# Loop over the folds
 for (i in 1:10) {
   # Split the data into training and testing sets
-  
   train_data <- final[final$fold != i, ]
   test_data <- final[final$fold == i, ]
   
-  # Create the formula
-  frmla <- as.formula(
-    "within_five ~ ED_PROVIDER + dayofweekt + month_of_year + CHIEF_COMPLAINT*ESI +
-     hypotensive + tachycardic + tachypneic + febrile"
+  # Fit the model with fixest::feglm, which is optimized for many fixed effects
+  model <- feglm(
+    batched ~ 0 | hypotensive + tachycardic + tachypneic + febrile +
+      ED_PROVIDER + CHIEF_COMPLAINT + ESI + dayofweekt + month_of_year, 
+    data = train_data, family = "binomial"
   )
   
-  # Train the model
-  model <- glm(frmla, data = train_data, family = "binomial")
+  # Make predictions for the test set
+  predictions[final$fold == i] <- predict(model, newdata = test_data, type = "response")
   
-  # Make predictions
-  predictions <- c(predictions, predict(model, test_data, type = "response"))
   print(i)
 }
 
+# Assign predictions to the final dataset
 final$predicted_prob <- predictions
-
 
 # Step 2: get a leave one out probability for each provider
 final <- final %>%
@@ -541,15 +537,10 @@ train <- final %>%
   filter(datetime < '2019-10-01') 
 
 # Step 3: fit a logistic regression model to predict batched
-frmla <- as.formula(
-  "batched ~ ED_PROVIDER + dayofweekt + month_of_year + CHIEF_COMPLAINT*ESI  +
-   hypotensive + tachycardic + tachypneic + febrile"
-)
-
-glm_model <- glm(frmla, data = train, family = 'binomial')
+glm_model <- feglm(0|batched ~ ED_PROVIDER + dayofweekt + month_of_year + CHIEF_COMPLAINT*ESI  +
+                     hypotensive + tachycardic + tachypneic + febrile, data = train, family = 'binomial')
 
 test$predicted_prob <- predict(glm_model, test, type = 'response')
-
 
 roc_obj1 <- roc(final$batched, final$predicted_prob)
 roc_obj2 <- roc(test$batched, test$predicted_prob)
@@ -587,7 +578,6 @@ ggplot(roc_data, aes(x = specificity, y = sensitivity, color = model)) +
   labs(
     x = "1 - Specificity",
     y = "Sensitivity",
-    title = "ROC Curves Comparison\n",
     color = "Method for Predicting Batched Status"
   ) +
   theme_minimal(base_size = 18) +  
@@ -606,7 +596,7 @@ ggplot(roc_data, aes(x = specificity, y = sensitivity, color = model)) +
     axis.line = element_line(colour = "black")
   ) 
 
-ggsave("roc_curves.png", width = 9.5, height = 8, dpi = 300)
+ggsave("outputs/figures/S1.pdf", width = 9.5, height = 8, dpi = 300)
 
 rm(list = setdiff(ls(), "final"))
 

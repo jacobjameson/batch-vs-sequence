@@ -1,79 +1,356 @@
-# A tibble: 50 × 2
-   variable                                                                     value
-   <chr>                                                                        <dbl>
- 1 CHIEF_COMPLAINTAbdominal.Complaints_mean                                   0.144  
- 2 CHIEF_COMPLAINTAbdominal.Complaints_sum                                 6231      
- 3 CHIEF_COMPLAINTAbnormal.Test.Results_mean                                  0.0419 
- 4 CHIEF_COMPLAINTAbnormal.Test.Results_sum                                1816      
- 5 CHIEF_COMPLAINTBack.or.Flank.Pain_mean                                     0.0589 
- 6 CHIEF_COMPLAINTBack.or.Flank.Pain_sum                                   2550      
- 7 CHIEF_COMPLAINTCardiac.Arrhythmias_mean                                    0.0241 
- 8 CHIEF_COMPLAINTCardiac.Arrhythmias_sum                                  1044      
- 9 CHIEF_COMPLAINTChest.Pain_mean                                             0.0813 
-10 CHIEF_COMPLAINTChest.Pain_sum                                           3521      
-11 CHIEF_COMPLAINTDizziness.Lightheadedness.Syncope_mean                      0.0437 
-12 CHIEF_COMPLAINTDizziness.Lightheadedness.Syncope_sum                    1894      
-13 CHIEF_COMPLAINTExtremity.Complaints_mean                                   0.121  
-14 CHIEF_COMPLAINTExtremity.Complaints_sum                                 5259      
-15 CHIEF_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma_mean     0.0550 
-16 CHIEF_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma_sum   2381      
-17 CHIEF_COMPLAINTFatigue.and.Weakness_mean                                   0.0345 
-18 CHIEF_COMPLAINTFatigue.and.Weakness_sum                                 1494      
-19 CHIEF_COMPLAINTFevers..Sweats.or.Chills_mean                               0.0425 
-20 CHIEF_COMPLAINTFevers..Sweats.or.Chills_sum                             1842      
-21 CHIEF_COMPLAINTGastrointestinal.Issues_mean                                0.0767 
-22 CHIEF_COMPLAINTGastrointestinal.Issues_sum                              3323      
-23 CHIEF_COMPLAINTNeurological.Issue_mean                                     0.0806 
-24 CHIEF_COMPLAINTNeurological.Issue_sum                                   3492      
-25 CHIEF_COMPLAINTShortness.of.Breath_mean                                    0.0684 
-26 CHIEF_COMPLAINTShortness.of.Breath_sum                                  2962      
-27 CHIEF_COMPLAINTSkin.Complaints_mean                                        0.0503 
-28 CHIEF_COMPLAINTSkin.Complaints_sum                                      2176      
-29 CHIEF_COMPLAINTUpper.Respiratory.Symptoms_mean                             0.0442 
-30 CHIEF_COMPLAINTUpper.Respiratory.Symptoms_sum                           1915      
-31 CHIEF_COMPLAINTUrinary.Complaints_mean                                     0.0323 
-32 CHIEF_COMPLAINTUrinary.Complaints_sum                                   1399      
-33 ESI1_mean                                                                  0.0104 
-34 ESI1_sum                                                                 450      
-35 ESI2_mean                                                                  0.311  
-36 ESI2_sum                                                               13463      
-37 ESI3_mean                                                                  0.570  
-38 ESI3_sum                                                               24679      
-39 ESI4_mean                                                                  0.106  
-40 ESI4_sum                                                                4572      
-41 ESI5_mean                                                                  0.00312
-42 ESI5_sum                                                                 135      
-43 tachycardic_mean                                                           0.193  
-44 tachycardic_sum                                                         8360      
-45 tachypneic_mean                                                            0.0923 
-46 tachypneic_sum                                                          3996      
-47 febrile_mean                                                               0.0236 
-48 febrile_sum                                                             1021      
-49 hypotensive_mean                                                           0.0149 
-50 hypotensive_sum                                                          645      
-                                                           dummy_var Df         F      Pr..F. adj_p_value
-1                                CHIEF_COMPLAINTAbdominal.Complaints 23 1.4006697 0.095829622  1.00000000
-2                               CHIEF_COMPLAINTAbnormal.Test.Results 23 2.0148717 0.002721964  0.06804911
-3                                  CHIEF_COMPLAINTBack.or.Flank.Pain 23 1.0289074 0.422596660  1.00000000
-4                                 CHIEF_COMPLAINTCardiac.Arrhythmias 23 0.9120347 0.582504182  1.00000000
-5                                          CHIEF_COMPLAINTChest.Pain 23 1.0421566 0.405538953  1.00000000
-6                   CHIEF_COMPLAINTDizziness.Lightheadedness.Syncope 23 0.9213847 0.569375671  1.00000000
-7                                CHIEF_COMPLAINTExtremity.Complaints 23 0.9915414 0.472206555  1.00000000
-8  CHIEF_COMPLAINTFalls..Motor.Vehicle.Crashes..Assaults..and.Trauma 23 0.7730619 0.769253117  1.00000000
-9                                CHIEF_COMPLAINTFatigue.and.Weakness 23 0.6813806 0.868917106  1.00000000
-10                           CHIEF_COMPLAINTFevers..Sweats.or.Chills 23 1.1318852 0.299365092  1.00000000
-11                            CHIEF_COMPLAINTGastrointestinal.Issues 23 1.0269883 0.425092364  1.00000000
-12                                 CHIEF_COMPLAINTNeurological.Issue 23 0.7074146 0.843405458  1.00000000
-13                                CHIEF_COMPLAINTShortness.of.Breath 23 1.1983358 0.232893399  1.00000000
-14                                    CHIEF_COMPLAINTSkin.Complaints 23 1.0209847 0.432939298  1.00000000
-15                         CHIEF_COMPLAINTUpper.Respiratory.Symptoms 23 1.2394516 0.197288513  1.00000000
-16                                 CHIEF_COMPLAINTUrinary.Complaints 23 1.8369172 0.008514110  0.21285275
-17                                                              ESI1 23 0.8844376 0.621189309  1.00000000
-18                                                              ESI2 23 1.3046679 0.149279944  1.00000000
-19                                                              ESI3 23 0.8671306 0.645272753  1.00000000
-20                                                              ESI4 23 1.4140625 0.089819915  1.00000000
-21                                                              ESI5 23 1.3023484 0.150815895  1.00000000
-22                                                       tachycardic 23 1.3902885 0.100714958  1.00000000
-23                                                        tachypneic 23 1.1756119 0.254388245  1.00000000
-24                                                           febrile 23 1.7078633 0.018516507  0.46291266
-25                                                       hypotensive 23 1.0545875 0.389824313  1.00000000
+
+==========================================================================================================================
+                                                                                    Dependent variable:                   
+                                                                  --------------------------------------------------------
+                                                                                       dependent_var                      
+                                                                         (1)                (2)                (3)        
+--------------------------------------------------------------------------------------------------------------------------
+batch.tendency                                                     0.067*** (0.023)   0.045** (0.020)    0.045** (0.020)  
+complaint_esiAbdominal Complaints 2                                                   0.246*** (0.092)   0.271*** (0.091) 
+complaint_esiAbdominal Complaints 3                                                    0.108 (0.090)      0.150* (0.088)  
+complaint_esiAbdominal Complaints 4                                                    0.024 (0.083)      0.068 (0.080)   
+complaint_esiAbnormal Test Results 1                                                   -0.183 (0.229)     -0.197 (0.226)  
+complaint_esiAbnormal Test Results 2                                                   0.041 (0.095)      0.076 (0.094)   
+complaint_esiAbnormal Test Results 3                                                   -0.055 (0.089)     -0.011 (0.088)  
+complaint_esiAbnormal Test Results 4                                                 -0.399*** (0.124)  -0.352*** (0.125) 
+complaint_esiBack or Flank Pain 1                                                      -0.671 (0.630)     -0.678 (0.612)  
+complaint_esiBack or Flank Pain 2                                                      0.135 (0.095)      0.164* (0.093)  
+complaint_esiBack or Flank Pain 3                                                      0.057 (0.092)      0.100 (0.091)   
+complaint_esiBack or Flank Pain 4                                                      -0.033 (0.099)     0.013 (0.098)   
+complaint_esiCardiac Arrhythmias 1                                                     -0.019 (0.151)     -0.003 (0.151)  
+complaint_esiCardiac Arrhythmias 2                                                     0.053 (0.091)      0.076 (0.089)   
+complaint_esiCardiac Arrhythmias 3                                                     -0.142 (0.091)     -0.103 (0.090)  
+complaint_esiCardiac Arrhythmias 4                                                   -0.656*** (0.165)  -0.612*** (0.161) 
+complaint_esiChest Pain 1                                                            -1.060*** (0.162)  -1.032*** (0.156) 
+complaint_esiChest Pain 2                                                              0.103 (0.094)      0.140 (0.093)   
+complaint_esiChest Pain 3                                                              -0.004 (0.092)     0.041 (0.090)   
+complaint_esiChest Pain 4                                                              0.076 (0.103)      0.121 (0.102)   
+complaint_esiDizziness/Lightheadedness/Syncope 1                                     -0.525*** (0.177)  -0.492*** (0.179) 
+complaint_esiDizziness/Lightheadedness/Syncope 2                                       0.119 (0.092)      0.156* (0.091)  
+complaint_esiDizziness/Lightheadedness/Syncope 3                                       0.052 (0.097)      0.098 (0.096)   
+complaint_esiDizziness/Lightheadedness/Syncope 4                                       -0.107 (0.109)     -0.063 (0.108)  
+complaint_esiExtremity Complaints 1                                                    0.024 (0.146)      0.053 (0.148)   
+complaint_esiExtremity Complaints 2                                                   0.228** (0.097)    0.260*** (0.096) 
+complaint_esiExtremity Complaints 3                                                    0.093 (0.091)      0.137 (0.090)   
+complaint_esiExtremity Complaints 4                                                    -0.002 (0.090)     0.044 (0.089)   
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 1                     -0.462* (0.265)    -0.448* (0.263)  
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 2                     0.247*** (0.085)   0.285*** (0.085) 
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 3                     0.184** (0.090)    0.228** (0.089)  
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 4                      -0.004 (0.087)     0.038 (0.086)   
+complaint_esiFatigue and Weakness 1                                                    -0.124 (0.166)     -0.124 (0.168)  
+complaint_esiFatigue and Weakness 2                                                   0.202** (0.085)    0.228*** (0.085) 
+complaint_esiFatigue and Weakness 3                                                    0.143 (0.094)     0.184** (0.093)  
+complaint_esiFatigue and Weakness 4                                                    -0.019 (0.183)     0.028 (0.180)   
+complaint_esiFevers, Sweats or Chills 1                                                0.019 (0.209)      -0.001 (0.209)  
+complaint_esiFevers, Sweats or Chills 2                                                0.135 (0.092)      0.144 (0.091)   
+complaint_esiFevers, Sweats or Chills 3                                                0.097 (0.089)      0.124 (0.088)   
+complaint_esiFevers, Sweats or Chills 4                                               -0.181* (0.097)    -0.162* (0.096)  
+complaint_esiGastrointestinal Issues 1                                                 -0.149 (0.176)     -0.150 (0.183)  
+complaint_esiGastrointestinal Issues 2                                                 0.139 (0.091)      0.163* (0.091)  
+complaint_esiGastrointestinal Issues 3                                                 0.087 (0.095)      0.126 (0.093)   
+complaint_esiGastrointestinal Issues 4                                                 -0.028 (0.102)     0.013 (0.100)   
+complaint_esiNeurological Issue 1                                                    -0.371*** (0.077)  -0.346*** (0.077) 
+complaint_esiNeurological Issue 2                                                      0.133 (0.087)      0.167* (0.086)  
+complaint_esiNeurological Issue 3                                                      0.127 (0.090)      0.169* (0.090)  
+complaint_esiNeurological Issue 4                                                      -0.105 (0.105)     -0.060 (0.102)  
+complaint_esiShortness of Breath 1                                                    -0.288** (0.130)   -0.299** (0.130) 
+complaint_esiShortness of Breath 2                                                    0.188** (0.092)    0.198** (0.091)  
+complaint_esiShortness of Breath 3                                                     0.109 (0.089)      0.144 (0.088)   
+complaint_esiShortness of Breath 4                                                     -0.188 (0.123)     -0.150 (0.123)  
+complaint_esiSkin Complaints 1                                                         0.157* (0.088)     0.166* (0.096)  
+complaint_esiSkin Complaints 2                                                         0.065 (0.093)      0.094 (0.092)   
+complaint_esiSkin Complaints 3                                                         0.003 (0.091)      0.043 (0.091)   
+complaint_esiSkin Complaints 4                                                       -0.282*** (0.086)  -0.238*** (0.084) 
+complaint_esiUpper Respiratory Symptoms 1                                              -0.038 (0.216)     -0.049 (0.227)  
+complaint_esiUpper Respiratory Symptoms 2                                              0.124 (0.093)      0.140 (0.092)   
+complaint_esiUpper Respiratory Symptoms 3                                              -0.006 (0.098)     0.028 (0.096)   
+complaint_esiUpper Respiratory Symptoms 4                                             -0.201** (0.093)   -0.162* (0.092)  
+complaint_esiUrinary Complaints 1                                                     0.310*** (0.088)   0.320*** (0.092) 
+complaint_esiUrinary Complaints 2                                                      0.062 (0.099)      0.094 (0.098)   
+complaint_esiUrinary Complaints 3                                                      -0.127 (0.090)     -0.083 (0.089)  
+complaint_esiUrinary Complaints 4                                                    -0.517*** (0.105)  -0.471*** (0.105) 
+LAB_PERF                                                                              0.553*** (0.022)   0.552*** (0.022) 
+hypotensive                                                                                              0.039** (0.016)  
+tachycardic                                                                                              0.044*** (0.007) 
+tachypneic                                                                                               0.047*** (0.009) 
+febrile                                                                                                   0.022* (0.012)  
+--------------------------------------------------------------------------------------------------------------------------
+Observations                                                            43,164             43,164             43,164      
+R2                                                                      0.048              0.325              0.327       
+Adjusted R2                                                             0.047              0.323              0.325       
+Residual Std. Error                                               0.535 (df = 43124) 0.450 (df = 43059) 0.450 (df = 43055)
+==========================================================================================================================
+Note:                                                                                          *p<0.1; **p<0.05; ***p<0.01
+
+==========================================================================================================================
+                                                                                    Dependent variable:                   
+                                                                  --------------------------------------------------------
+                                                                                       dependent_var                      
+                                                                         (1)                (2)                (3)        
+--------------------------------------------------------------------------------------------------------------------------
+batch.tendency                                                    -0.002*** (0.001)  -0.002*** (0.001)  -0.001*** (0.0005)
+complaint_esiAbdominal Complaints 2                                                   0.025*** (0.004)   0.016*** (0.005) 
+complaint_esiAbdominal Complaints 3                                                   0.017*** (0.002)    0.005 (0.003)   
+complaint_esiAbdominal Complaints 4                                                    0.026 (0.026)      0.013 (0.025)   
+complaint_esiAbnormal Test Results 1                                                   0.002 (0.003)      -0.001 (0.004)  
+complaint_esiAbnormal Test Results 2                                                  0.020*** (0.005)   0.012** (0.006)  
+complaint_esiAbnormal Test Results 3   
+> ################################################################################
+> #================================================================ .... [TRUNCATED] 
+
+> data$ESI_cat <- as.factor(data$ESI_cat)
+
+> complaints <- unique(data$CHIEF_COMPLAINT)
+
+> model_for_complaint <- function(complaint, esi, outcome_var) {
++   formula <- as.formula(paste(outcome_var, "~ batch.tendency | LAB_PERF + dayofweek ..." ... [TRUNCATED] 
+
+> results <- data.frame(
++   coef = numeric(),
++   cse = numeric(),
++   complaint = character(),
++   esi = character(),
++   outcome_var = character()
+ .... [TRUNCATED] 
+
+> r_number <- 1
+
+> total_tests <- length(complaints) * 2 * 3  # 2 ESI categories, 3 outcome variables
+
+> adjusted_alpha <- 0.05 / total_tests
+
+> z_value <- qnorm(1 - adjusted_alpha / 2)  # Calculate z-value for the adjusted alpha
+
+> for (complaint in complaints) {
++   for (esi in c('ESI \n1 or 2', 'ESI \n3, 4, or 5')) {
++     for (outcome in c('ln_ED_LOS', 'imgTests', 'RTN_72_HR .... [TRUNCATED] 
+
+> results <- results %>%
++   mutate(
++     coef = as.numeric(coef),
++     cse = as.numeric(cse),
++     CI_lower_b = coef - z_value * cse,
++     CI_upp .... [TRUNCATED] 
+
+> results %>%
++   mutate(
++     complaint = ifelse(
++       complaint == "Falls, Motor Vehicle Crashes, Assaults, and Trauma",
++       "Assaults and T ..." ... [TRUNCATED] 
+
+> ggsave("outputs/figures/Figure 2.pdf", width = 16, height = 15.5, dpi = 300, bg = 'white')
+The following package(s) will be updated in the lockfile:
+
+# CRAN -----------------------------------------------------------------------
+- askpass           [repo: RSPM -> CRAN; ver: 1.2.0 -> 1.2.1]
+- backports         [repo: RSPM -> CRAN; ver: 1.4.1 -> 1.5.0]
+- bit               [repo: RSPM -> CRAN; ver: 4.0.5 -> 4.5.0]
+- bit64             [repo: RSPM -> CRAN; ver: 4.0.5 -> 4.5.2]
+- broom             [repo: RSPM -> CRAN; ver: 1.0.5 -> 1.0.7]
+- bslib             [0.6.0 -> 0.8.0]
+- cachem            [repo: RSPM -> CRAN; ver: 1.0.8 -> 1.1.0]
+- callr             [repo: RSPM -> CRAN; ver: 3.7.3 -> 3.7.6]
+- checkmate         [repo: RSPM -> CRAN; ver: 2.3.1 -> 2.3.2]
+- cli               [repo: RSPM -> CRAN; ver: 3.6.2 -> 3.6.3]
+- clock             [repo: RSPM -> CRAN; ver: 0.7.0 -> 0.7.1]
+- codetools         [0.2-19 -> 0.2-20]
+- colorspace        [repo: RSPM -> CRAN; ver: 2.1-0 -> 2.1-1]
+- cpp11             [repo: RSPM -> CRAN; ver: 0.4.7 -> 0.5.0]
+- crayon            [repo: RSPM -> CRAN; ver: 1.5.2 -> 1.5.3]
+- curl              [repo: RSPM -> CRAN; ver: 5.1.0 -> 5.2.3]
+- data.table        [repo: RSPM -> CRAN; ver: 1.14.8 -> 1.16.0]
+- DBI               [repo: RSPM -> CRAN; ver: 1.1.3 -> 1.2.3]
+- dbplyr            [repo: RSPM -> CRAN; ver: 2.4.0 -> 2.5.0]
+- digest            [repo: RSPM -> CRAN; ver: 0.6.33 -> 0.6.37]
+- e1071             [repo: RSPM -> CRAN; ver: 1.7-14 -> 1.7-16]
+- evaluate          [repo: RSPM -> CRAN; ver: 0.23 -> 1.0.0]
+- fansi             [repo: RSPM -> CRAN; ver: 1.0.5 -> 1.0.6]
+- farver            [repo: RSPM -> CRAN; ver: 2.1.1 -> 2.1.2]
+- fastmap           [repo: RSPM -> CRAN; ver: 1.1.1 -> 1.2.0]
+- fs                [repo: RSPM -> CRAN; ver: 1.6.3 -> 1.6.4]
+- future            [repo: RSPM -> CRAN; ver: 1.33.1 -> 1.34.0]
+- future.apply      [repo: RSPM -> CRAN; ver: 1.11.1 -> 1.11.2]
+- ggeffects         [repo: RSPM -> CRAN; ver: 1.5.1 -> 1.7.2]
+- ggplot2           [3.5.0 -> 3.5.1]
+- globals           [repo: RSPM -> CRAN; ver: 0.16.2 -> 0.16.3]
+- glue              [repo: RSPM -> CRAN; ver: 1.7.0 -> 1.8.0]
+- gt                [0.10.0 -> *]
+- gtable            [repo: RSPM -> CRAN; ver: 0.3.4 -> 0.3.5]
+- hardhat           [repo: RSPM -> CRAN; ver: 1.3.0 -> 1.4.0]
+- haven             [2.5.3 -> 2.5.4]
+- highr             [repo: RSPM -> CRAN; ver: 0.10 -> 0.11]
+- htmltools         [repo: RSPM -> CRAN; ver: 0.5.7 -> 0.5.8.1]
+- htmlwidgets       [1.6.3 -> *]
+- insight           [repo: RSPM -> CRAN; ver: 0.19.10 -> 0.20.5]
+- ipred             [repo: RSPM -> CRAN; ver: 0.9-14 -> 0.9-15]
+- jsonlite          [repo: RSPM -> CRAN; ver: 1.8.8 -> 1.8.9]
+- KernSmooth        [2.23-22 -> 2.23-24]
+- knitr             [repo: RSPM -> CRAN; ver: 1.45 -> 1.48]
+- lattice           [0.22-5 -> 0.22-6]
+- lava              [repo: RSPM -> CRAN; ver: 1.7.3 -> 1.8.0]
+- lfe               [repo: RSPM -> CRAN; ver: 2.9-0 -> 3.0-0]
+- listenv           [repo: RSPM -> CRAN; ver: 0.9.0 -> 0.9.1]
+- marginaleffects   [repo: RSPM -> CRAN; ver: 0.17.0 -> 0.23.0]
+- markdown          [1.11 -> *]
+- MASS              [7.3-60.0.1 -> 7.3-61]
+- Matrix            [1.6-5 -> 1.7-0]
+- munsell           [repo: RSPM -> CRAN; ver: 0.5.0 -> 0.5.1]
+- openssl           [repo: RSPM -> CRAN; ver: 2.1.1 -> 2.2.2]
+- parallelly        [repo: RSPM -> CRAN; ver: 1.36.0 -> 1.38.0]
+- processx          [repo: RSPM -> CRAN; ver: 3.8.2 -> 3.8.4]
+- prodlim           [repo: RSPM -> CRAN; ver: 2023.08.28 -> 2024.06.25]
+- progress          [repo: RSPM -> CRAN; ver: 1.2.2 -> 1.2.3]
+- ps                [repo: RSPM -> CRAN; ver: 1.7.5 -> 1.8.0]
+- ragg              [repo: RSPM -> CRAN; ver: 1.2.6 -> 1.3.3]
+- Rcpp              [repo: RSPM -> CRAN; ver: 1.0.11 -> 1.0.13]
+- RcppEigen         [repo: RSPM -> CRAN; ver: 0.3.3.9.4 -> 0.3.4.0.2]
+- recipes           [repo: RSPM -> CRAN; ver: 1.0.9 -> 1.1.0]
+- renv              [repo: RSPM -> CRAN; ver: 1.0.5 -> 1.0.11]
+- reprex            [repo: RSPM -> CRAN; ver: 2.0.2 -> 2.1.1]
+- rlang             [repo: RSPM -> CRAN; ver: 1.1.3 -> 1.1.4]
+- rmarkdown         [repo: RSPM -> CRAN; ver: 2.25 -> 2.28]
+- rstudioapi        [repo: RSPM -> CRAN; ver: 0.15.0 -> 0.16.0]
+- rvest             [repo: RSPM -> CRAN; ver: 1.0.3 -> 1.0.4]
+- sandwich          [repo: RSPM -> CRAN; ver: 3.0-2 -> 3.1-1]
+- sass              [repo: RSPM -> CRAN; ver: 0.4.7 -> 0.4.9]
+- shape             [repo: RSPM -> CRAN; ver: 1.4.6 -> 1.4.6.1]
+- stringi           [repo: RSPM -> CRAN; ver: 1.8.2 -> 1.8.4]
+- survival          [3.5-8 -> 3.6-4]
+- sys               [repo: RSPM -> CRAN; ver: 3.4.2 -> 3.4.3]
+- systemfonts       [repo: RSPM -> CRAN; ver: 1.0.5 -> 1.1.0]
+- textshaping       [repo: RSPM -> CRAN; ver: 0.3.7 -> 0.4.0]
+- tidyr             [repo: RSPM -> CRAN; ver: 1.3.0 -> 1.3.1]
+- tidyselect        [repo: RSPM -> CRAN; ver: 1.2.0 -> 1.2.1]
+- timechange        [repo: RSPM -> CRAN; ver: 0.2.0 -> 0.3.0]
+- timeDate          [repo: RSPM -> CRAN; ver: 4032.109 -> 4041.110]
+- tinytex           [repo: RSPM -> CRAN; ver: 0.49 -> 0.53]
+- uuid              [repo: RSPM -> CRAN; ver: 1.1-1 -> 1.2-1]
+- vctrs             [0.6.4 -> 0.6.5]
+- vroom             [1.6.4 -> 1.6.5]
+- withr             [repo: RSPM -> CRAN; ver: 2.5.2 -> 3.0.1]
+- xfun              [repo: RSPM -> CRAN; ver: 0.41 -> 0.48]
+- xml2              [1.3.5 -> 1.3.6]
+- yaml              [repo: RSPM -> CRAN; ver: 2.3.7 -> 2.3.10]
+- dichromat         [* -> 2.0-0.1]
+- dreamerr          [* -> 1.4.0]
+- fixest            [* -> 0.12.1]
+- ggsci             [* -> 3.2.0]
+- ggthemes          [* -> 5.1.0]
+- mapproj           [* -> 1.2.11]
+- maps              [* -> 3.4.2]
+- pals              [* -> 1.9]
+- stringmagic       [* -> 1.1.2]
+- texreg            [* -> 1.39.4]
+
+# RSPM -----------------------------------------------------------------------
+- bigD              [0.2.0 -> *]
+- bitops            [1.0-7 -> *]
+- broom.helpers     [1.14.0 -> *]
+- commonmark        [1.9.0 -> *]
+- ellipsis          [0.3.2 -> *]
+- gtsummary         [1.7.2 -> *]
+- juicyjuice        [0.1.0 -> *]
+- labelled          [2.12.0 -> *]
+- reactable         [0.4.4 -> *]
+- reactR            [0.5.0 -> *]
+- V8                [4.4.1 -> *]
+
+The version of R recorded in the lockfile will be updated:
+- R                 [4.3.3 -> 4.4.1]
+
+
+- Lockfile written to "~/GitHub/batch-vs-sequence/renv.lock".
+ 
+dispodischarge                                                                                           0.019*** (0.002) 
+dispoobserveration                                                                                       0.005*** (0.001) 
+dispoother                                                                                               0.019*** (0.005) 
+--------------------------------------------------------------------------------------------------------------------------
+Observations                                                            43,164             43,164             43,164      
+R2                                                                      0.002              0.005              0.009       
+Adjusted R2                                                             0.001              0.002              0.006       
+Residual Std. Error                                               0.115 (df = 43124) 0.115 (df = 43059) 0.115 (df = 43052)
+==========================================================================================================================
+Note:                                                                                          *p<0.1; **p<0.05; ***p<0.01
+
+==========================================================================================================================
+                                                                                    Dependent variable:                   
+                                                                  --------------------------------------------------------
+                                                                                       dependent_var                      
+                                                                         (1)                (2)                (3)        
+--------------------------------------------------------------------------------------------------------------------------
+batch.tendency                                                     0.102*** (0.009)   0.080*** (0.007)   0.080*** (0.007) 
+complaint_esiAbdominal Complaints 2                                                  -0.565*** (0.181)  -0.446*** (0.170) 
+complaint_esiAbdominal Complaints 3                                                  -0.823*** (0.185)  -0.672*** (0.171) 
+complaint_esiAbdominal Complaints 4                                                  -0.904*** (0.196)  -0.755*** (0.191) 
+complaint_esiAbnormal Test Results 1                                                   -0.414 (0.558)     -0.485 (0.573)  
+complaint_esiAbnormal Test Results 2                                                 -1.012*** (0.186)  -0.886*** (0.171) 
+complaint_esiAbnormal Test Results 3                                                 -1.168*** (0.185)  -1.016*** (0.170) 
+complaint_esiAbnormal Test Results 4                                                 -1.241*** (0.205)  -1.085*** (0.195) 
+complaint_esiBack or Flank Pain 1                                                      0.201 (0.185)      0.130 (0.199)   
+complaint_esiBack or Flank Pain 2                                                    -0.624*** (0.192)  -0.503*** (0.180) 
+complaint_esiBack or Flank Pain 3                                                    -0.810*** (0.191)  -0.658*** (0.178) 
+complaint_esiBack or Flank Pain 4                                                    -0.964*** (0.190)  -0.807*** (0.175) 
+complaint_esiCardiac Arrhythmias 1                                                   -0.864*** (0.278)  -0.768*** (0.266) 
+complaint_esiCardiac Arrhythmias 2                                                   -1.026*** (0.191)  -0.897*** (0.178) 
+complaint_esiCardiac Arrhythmias 3                                                   -1.194*** (0.192)  -1.042*** (0.177) 
+complaint_esiCardiac Arrhythmias 4                                                   -1.370*** (0.184)  -1.215*** (0.176) 
+complaint_esiChest Pain 1                                                            -0.852*** (0.194)  -0.738*** (0.188) 
+complaint_esiChest Pain 2                                                            -0.531*** (0.186)   -0.391** (0.172) 
+complaint_esiChest Pain 3                                                            -0.615*** (0.181)  -0.461*** (0.167) 
+complaint_esiChest Pain 4                                                             -0.389* (0.209)     -0.233 (0.197)  
+complaint_esiDizziness/Lightheadedness/Syncope 1                                      -0.396* (0.220)     -0.297 (0.224)  
+complaint_esiDizziness/Lightheadedness/Syncope 2                                     -0.619*** (0.183)  -0.490*** (0.171) 
+complaint_esiDizziness/Lightheadedness/Syncope 3                                     -0.886*** (0.193)  -0.732*** (0.179) 
+complaint_esiDizziness/Lightheadedness/Syncope 4                                     -1.052*** (0.212)  -0.906*** (0.202) 
+complaint_esiExtremity Complaints 1                                                    -0.413 (0.341)     -0.301 (0.333)  
+complaint_esiExtremity Complaints 2                                                   -0.402** (0.193)    -0.272 (0.179)  
+complaint_esiExtremity Complaints 3                                                  -0.545*** (0.185)   -0.393** (0.172) 
+complaint_esiExtremity Complaints 4                                                  -0.530*** (0.184)   -0.374** (0.171) 
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 1                      0.067 (0.275)      0.135 (0.253)   
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 2                      -0.100 (0.186)     0.036 (0.173)   
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 3                      -0.239 (0.186)     -0.087 (0.173)  
+complaint_esiFalls, Motor Vehicle Crashes, Assaults, and Trauma 4                    -0.561*** (0.175)   -0.412** (0.161) 
+complaint_esiFatigue and Weakness 1                                                    -0.296 (0.238)     -0.321 (0.245)  
+complaint_esiFatigue and Weakness 2                                                    -0.289 (0.182)     -0.180 (0.170)  
+complaint_esiFatigue and Weakness 3                                                  -0.693*** (0.190)  -0.546*** (0.177) 
+complaint_esiFatigue and Weakness 4                                                  -1.214*** (0.211)  -1.054*** (0.201) 
+complaint_esiFevers, Sweats or Chills 1                                                -0.100 (0.306)     -0.164 (0.302)  
+complaint_esiFevers, Sweats or Chills 2                                               -0.310* (0.183)     -0.264 (0.170)  
+complaint_esiFevers, Sweats or Chills 3                                              -0.694*** (0.199)  -0.587*** (0.185) 
+complaint_esiFevers, Sweats or Chills 4                                              -1.021*** (0.204)  -0.923*** (0.193) 
+complaint_esiGastrointestinal Issues 1                                                 -0.275 (0.170)     -0.245 (0.174)  
+complaint_esiGastrointestinal Issues 2                                               -0.858*** (0.181)  -0.744*** (0.169) 
+complaint_esiGastrointestinal Issues 3                                               -1.112*** (0.192)  -0.964*** (0.178) 
+complaint_esiGastrointestinal Issues 4                                               -1.110*** (0.192)  -0.960*** (0.179) 
+complaint_esiNeurological Issue 1                                                      0.126 (0.203)      0.230 (0.192)   
+complaint_esiNeurological Issue 2                                                     -0.390** (0.190)    -0.260 (0.177)  
+complaint_esiNeurological Issue 3                                                    -0.836*** (0.190)  -0.684*** (0.176) 
+complaint_esiNeurological Issue 4                                                    -0.971*** (0.186)  -0.813*** (0.173) 
+complaint_esiShortness of Breath 1                                                     -0.266 (0.210)     -0.247 (0.210)  
+complaint_esiShortness of Breath 2                                                    -0.327* (0.180)     -0.247 (0.171)  
+complaint_esiShortness of Breath 3                                                   -0.481*** (0.178)   -0.348** (0.165) 
+complaint_esiShortness of Breath 4                                                   -0.720*** (0.216)  -0.579*** (0.202) 
+complaint_esiSkin Complaints 1                                                       -1.265*** (0.439)   -1.232** (0.524) 
+complaint_esiSkin Complaints 2                                                       -0.940*** (0.180)  -0.822*** (0.168) 
+complaint_esiSkin Complaints 3                                                       -1.077*** (0.183)  -0.928*** (0.170) 
+complaint_esiSkin Complaints 4                                                       -1.223*** (0.184)  -1.069*** (0.170) 
+complaint_esiUpper Respiratory Symptoms 1                                              -0.226 (0.458)     -0.196 (0.412)  
+complaint_esiUpper Respiratory Symptoms 2                                            -0.454*** (0.175)   -0.363** (0.165) 
+complaint_esiUpper Respiratory Symptoms 3                                            -0.616*** (0.180)  -0.483*** (0.166) 
+complaint_esiUpper Respiratory Symptoms 4                                            -0.816*** (0.173)  -0.671*** (0.160) 
+complaint_esiUrinary Complaints 1                                                    -0.770*** (0.181)  -0.834*** (0.185) 
+complaint_esiUrinary Complaints 2                                                    -1.047*** (0.189)  -0.923*** (0.179) 
+complaint_esiUrinary Complaints 3                                                    -1.398*** (0.184)  -1.244*** (0.170) 
+complaint_esiUrinary Complaints 4                                                    -1.655*** (0.185)  -1.497*** (0.171) 
+LAB_PERF                                                                              0.515*** (0.013)   0.511*** (0.014) 
+hypotensive                                                                                              0.224*** (0.033) 
+tachycardic                                                                                              0.033*** (0.010) 
+tachypneic                                                                                               0.117*** (0.013) 
+febrile                                                                                                  0.189*** (0.023) 
+--------------------------------------------------------------------------------------------------------------------------
+Observations                                                            43,164             43,164             43,164      
+R2                                                                      0.019              0.240              0.244       
+Adjusted R2                                                             0.018              0.238              0.243       
+Residual Std. Error                                               0.762 (df = 43124) 0.672 (df = 43059) 0.669 (df = 43055)
+==========================================================================================================================
+Note:                                                                                          *p<0.1; **p<0.05; ***p<0.01

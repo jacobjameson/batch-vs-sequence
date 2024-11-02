@@ -1,7 +1,4 @@
 
-> # Run all scripts
-> source("src/main.R", echo = TRUE)
-
 > #=========================================================================
 > # Purpose: Main R file for Preparing/Cleaning Data
 > # Author: Jacob Ja .... [TRUNCATED] 
@@ -47,6 +44,15 @@
 > #=========================================================================
 > # Determine batching
 > #   - criteria: images ordered within 5 minutes  .... [TRUNCATED] 
+
+> # Function to check if any two values are within 5 of each other, robust to NA values
+> check_within_five <- function(row) {
++   # Extract only the  .... [TRUNCATED] 
+
+> # Apply the function to each row of the dataframe
+> df$within_five <- apply(df[cols_of_interest], 1, check_within_five)
+
+> df$within_five <- as.numeric(df$within_five)
 
 > # Function to determine batch
 > determine_batch <- function(row) {
@@ -105,10 +111,10 @@
 > # Create Time FE ------------------------------------------------------ .... [TRUNCATED] 
 
 > # Define arbitrary start date
-> start_date <- as.POSIXct("2000-01-01 00:00:00", tz = "UTC")
+> start_date <- as.POSIXct("2018-10-06 00:00:00", tz = "UTC")
 
 > # Convert relative minutes to datetime
-> df$datetime <- start_date + minutes(df$rel_minutes_arrival)
+> df$datetime <- start_date + minutes(df$rel_minutes_arrival) - minutes(min(df$rel_minutes_arrival))
 
 > # Extract hour of day, day of week, and month of year
 > df$hour_of_day <- hour(df$datetime)
@@ -137,7 +143,7 @@
 
 > final$discharge = ifelse(final$ED_DISPOSITION == 'Discharge', 1, 0)
 
-> final$observation = ifelse(final$ED_DISPOSITION == 'Observation', 1, 0)
+> final$observation = ifelse(final$ED_DISPOSITION == 'Hospital Observation', 1, 0)
 
 > final <- final %>%
 +   mutate(dispo = case_when(
@@ -164,9 +170,31 @@
 > #=========================================================================
 > # Create Batch Tendency ----------------------------------------------- .... [TRUNCATED] 
 
-> glm_model <- glm(frmla, data = final, family = 'binomial')
+> final$fold <- sample(1:10, nrow(final), replace = TRUE)
 
-> final$predicted_prob <- predict(glm_model, type = 'response')
+> final <- arrange(final, fold)
+
+> # Pre-allocate predictions
+> predictions <- numeric(nrow(final))
+
+> # Loop over the folds
+> for (i in 1:10) {
++   # Split the data into training and testing sets
++   train_data <- final[final$fold != i, ]
++   test_da .... [TRUNCATED] 
+[1] 1
+[1] 2
+[1] 3
+[1] 4
+[1] 5
+[1] 6
+[1] 7
+[1] 8
+[1] 9
+[1] 10
+
+> # Assign predictions to the final dataset
+> final$predicted_prob <- predictions
 
 > # Step 2: get a leave one out probability for each provider
 > final <- final %>%
@@ -175,84 +203,96 @@
 
 > final$batch.tendency <- as.vector(scale(final$batch.tendency))
 
+> test <- final %>%
++   filter(datetime >= '2019-10-01') 
+
+> train <- final %>%
++   filter(datetime < '2019-10-01') 
+
+> # Step 3: fit a logistic regression model to predict batched
+> glm_model <- feglm(0|batched ~ ED_PROVIDER + dayofweekt + month_of_year + CHIEF_COMPL .... [TRUNCATED] 
+
+> test$predicted_prob <- predict(glm_model, test, type = 'response')
+
+> roc_obj1 <- roc(final$batched, final$predicted_prob)
+
+> roc_obj2 <- roc(test$batched, test$predicted_prob)
+
+> # Create a data frame for ggplot
+> roc_data1 <- data.frame(
++   specificity = 1 - roc_obj1$specificities,
++   sensitivity = roc_obj1$sensitivities,
+ .... [TRUNCATED] 
+
+> roc_data2 <- data.frame(
++   specificity = 1 - roc_obj2$specificities,
++   sensitivity = roc_obj2$sensitivities,
++   model = "Test Set (Last 2 Month ..." ... [TRUNCATED] 
+
+> roc_data <- rbind(roc_data1, roc_data2)
+
+> # Calculate AUCs
+> auc1 <- auc(roc_obj1)
+
+> auc2 <- auc(roc_obj2)
+
+> roc_data <- roc_data %>%
++   mutate(model = case_when(
++     model == "10-fold CV" ~ paste0("10-fold CV AUC: ", round(auc1, 3)),
++     model == "Tes ..." ... [TRUNCATED] 
+
+> ggplot(roc_data, aes(x = specificity, y = sensitivity, color = model)) +
++   geom_line(size = 1) +
++   scale_color_brewer(palette = 'Set1') +  
++    .... [TRUNCATED] 
+
+> ggsave("outputs/figures/S1.pdf", width = 9.5, height = 8, dpi = 300)
+
 > rm(list = setdiff(ls(), "final"))
 
 > data <- final
 
 > #=========================================================================
 
-> source("src/figures.R", echo = TRUE)
-
 > #=========================================================================
 > # Purpose: Generate Figures and Tables for the Manuscript
 > # Author: J .... [TRUNCATED] 
 
-> # Identify top 10 chief complaints based on frequency
-> top_10_chief_complaints <- patient_data %>%
-+   count(CHIEF_COMPLAINT) %>%
-+   top_n(10, n)  .... [TRUNCATED] 
+> create_dummy_variables <- function(data, categorical_var) {
++   dummy_encoder <- dummyVars(paste("~", categorical_var), data = data)
++   encoded_dat .... [TRUNCATED] 
 
-> # Label chief complaints not in top 10 as "DROP"
-> patient_data <- patient_data %>%
-+   mutate(CHIEF_COMPLAINT = if_else(CHIEF_COMPLAINT %in% top_10 .... [TRUNCATED] 
+> create_esi_dummies <- function(data) {
++   esi_vars <- paste0("ESI", 1:5)
++   for (i in 1:5) {
++     data[[esi_vars[i]]] <- as.integer(data$ESI == i .... [TRUNCATED] 
 
-> # One-hot encoding for CHIEF_COMPLAINT
-> dummy_encoder <- dummyVars(" ~ CHIEF_COMPLAINT", data = patient_data)
+> # Performs Wald test for balance checking across physicians
+> # Returns test results and p-value for multiple comparison adjustment
+> perform_wald_t .... [TRUNCATED] 
 
-> one_hot_encoded_data <- data.frame(predict(dummy_encoder, newdata = patient_data))
+> generate_balance_table <- function(data, 
++                                    output_file,
++                                    clinical_vars = c(" ..." ... [TRUNCATED] 
 
-> relevant_vars <- setdiff(names(one_hot_encoded_data), 'CHIEF_COMPLAINTDROP')
-
-> # Add the one-hot encoded data to the main dataset
-> patient_data <- cbind(patient_data, one_hot_encoded_data)
-
-> # Create binary flags for ESI values
-> patient_data <- patient_data %>%
-+   mutate(ESI_1_or_2 = as.integer(ESI %in% 1:2),
-+          ESI_3_or_4_or_5 .... [TRUNCATED] 
-
-> # Update the relevant variables list
-> relevant_vars <- c(relevant_vars, 'ESI_1_or_2', 'ESI_3_or_4_or_5', 
-+                    "tachycardic", "tach ..." ... [TRUNCATED] 
-
-> # get column mean and sum for each variable
-> patient_data %>%
-+   summarise(across(relevant_vars, mean, na.rm = TRUE),
-+             across(relevan .... [TRUNCATED] 
-
-> # Initialize balance dataframe
-> balance_stats <- data.frame(Df = numeric(), 
-+                             F = numeric(),
-+                         .... [TRUNCATED] 
-
-> # Loop through each variable and collect balance statistics
-> for (dummy_var in relevant_vars) {
-+   baseline_model <- lm(as.formula(paste(dummy_var .... [TRUNCATED] 
-
-> row.names(balance_stats) <- NULL
-
-> # Save the results to a .txt file
-> sink("outputs/tables/Table 1.txt")
+> results <- generate_balance_table(
++   data = patient_data,
++   output_file = "outputs/tables/S2A.txt"
++ )
 
 > ##########################################################################
 > #====================================================================== .... [TRUNCATED] 
 
-> complaints <- data_for_plot %>%
-+   count(CHIEF_COMPLAINT) %>%
-+   top_n(9, n) %>%
-+   pull(CHIEF_COMPLAINT)
-
 > data_for_plot <- data_for_plot %>% 
-+   filter(CHIEF_COMPLAINT %in% complaints) %>%
-+   group_by(ED_PROVIDER, CHIEF_COMPLAINT) %>%
-+   summarize(bat .... [TRUNCATED] 
++   mutate(CHIEF_COMPLAINT = ifelse(
++     CHIEF_COMPLAINT == "Falls, Motor Vehicle Crashes, Assaults, and Traum ..." ... [TRUNCATED] 
 
-> ggplot(data_for_plot, aes(x = CHIEF_COMPLAINT, y = batch_rate, 
-+                           fill = CHIEF_COMPLAINT)) +
-+   geom_boxplot(alpha=0.4, o .... [TRUNCATED] 
+> ggplot(data = data_for_plot, aes(x = reorder(CHIEF_COMPLAINT, -batch_rate), 
++                                  y = batch_rate,
++                    .... [TRUNCATED] 
 
-> ggsave("outputs/figures/Figure 1.png", 
-+        width = 12, height = 7, dpi = 300, bg = 'white')
+> ggsave("outputs/figures/Figure 1.pdf", 
++        width = 15, height = 13, dpi = 300, bg = 'white')
 
 > ##########################################################################
 > #====================================================================== .... [TRUNCATED] 
@@ -272,7 +312,7 @@
 +   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.8, fill = "#a6cee3") +
 + .... [TRUNCATED] 
 
-> ggsave("outputs/figures/Figure 2.png", width = 11.5, height = 7, bg = 'white')
+> ggsave("outputs/figures/S2A.pdf", width = 10.5, height = 8, bg = 'white')
 
 > ##########################################################################
 > #====================================================================== .... [TRUNCATED] 
@@ -288,51 +328,34 @@
 +     'Log Transformed ED Length of Stay')) %>%
 +   ggpl .... [TRUNCATED] 
 
-> ggsave("outputs/figures/Figure 3.png", width = 11.5, height = 7, bg = 'white')
+> ggsave("outputs/figures/S3A.pdf", width = 11.5, height = 7, bg = 'white')
 
 > ################################################################################
 > #================================================================ .... [TRUNCATED] 
 
-> model.2a <- felm(RTN_72_HR ~ batch.tendency |
-+                   dayofweekt + month_of_year + complaint_esi |0|
-+                   ED_PROVIDER, da .... [TRUNCATED] 
+> # Function to generate regression tables
+> generate_tables <- function(models, outcome_name, output_file, 
++                             omit_vars = .... [TRUNCATED] 
 
-> model.3a <- felm(imgTests ~ batch.tendency  | 
-+                   dayofweekt + month_of_year + complaint_esi +
-+                   hypotensive + ta .... [TRUNCATED] 
+> # Main analysis
+> main_analysis <- function(data, output_file) {
++   sink(output_file)
++   
++   # 1. LOS Analysis
++   los_models <- run_regression_m .... [TRUNCATED] 
 
-> model.1b <- felm(ln_ED_LOS ~ batch.tendency + patients_in_hospital | LAB_PERF +
-+                   dayofweekt + month_of_year + complaint_esi|0|
-+  .... [TRUNCATED] 
-
-> model.2b <- felm(RTN_72_HR ~ batch.tendency + patients_in_hospital | LAB_PERF +
-+                   dayofweekt + month_of_year + complaint_esi|0|
-+  .... [TRUNCATED] 
-
-> model.3b <- felm(imgTests ~ batch.tendency + patients_in_hospital  | LAB_PERF +
-+                   dayofweekt + month_of_year + complaint_esi|0|
-+  .... [TRUNCATED] 
-
-> sink("outputs/tables/Main Results.txt")
+> # Run the analysis
+> main_analysis(data, "outputs/tables/Table 1.txt")
 
 > ################################################################################
 > #================================================================ .... [TRUNCATED] 
 
 > data$ESI_cat <- as.factor(data$ESI_cat)
 
-> # Function to map specific complaints to general categories
-> map_complaints <- function(complaint) {
-+   if (complaint %in% c('Abdominal Complaints .... [TRUNCATED] 
-
-> data$GROUPED_COMPLAINT <- sapply(data$CHIEF_COMPLAINT, map_complaints)
-
-> complaints <- unique(data$GROUPED_COMPLAINT)
+> complaints <- unique(data$CHIEF_COMPLAINT)
 
 > model_for_complaint <- function(complaint, esi, outcome_var) {
-+   
-+   formula <- as.formula(
-+     paste(outcome_var, 
-+           "~ batch.tenden ..." ... [TRUNCATED] 
++   formula <- as.formula(paste(outcome_var, "~ batch.tendency | LAB_PERF + dayofweek ..." ... [TRUNCATED] 
 
 > results <- data.frame(
 +   coef = numeric(),
@@ -344,49 +367,27 @@
 
 > r_number <- 1
 
+> total_tests <- length(complaints) * 2 * 3  # 2 ESI categories, 3 outcome variables
+
+> adjusted_alpha <- 0.05 / total_tests
+
+> z_value <- qnorm(1 - adjusted_alpha / 2)  # Calculate z-value for the adjusted alpha
+
 > for (complaint in complaints) {
 +   for (esi in c('ESI \n1 or 2', 'ESI \n3, 4, or 5')) {
-+     row <- model_for_complaint(complaint, esi, 'ln_ED_LOS .... [TRUNCATED] 
++     for (outcome in c('ln_ED_LOS', 'imgTests', 'RTN_72_HR .... [TRUNCATED] 
 
 > results <- results %>%
-+   mutate(coef = as.numeric(coef),
-+          cse = as.numeric(cse),
-+          CI_lower = coef - 1.96 * cse,
-+          CI_ .... [TRUNCATED] 
++   mutate(
++     coef = as.numeric(coef),
++     cse = as.numeric(cse),
++     CI_lower_b = coef - z_value * cse,
++     CI_upp .... [TRUNCATED] 
 
 > results %>%
-+   filter(complaint != 'General/Other Symptoms') %>%
 +   mutate(
-+     outcome_var = case_when(
-+       outcome_var == 'ln_ED_LOS' ~ 'L .... [TRUNCATED] 
++     complaint = ifelse(
++       complaint == "Falls, Motor Vehicle Crashes, Assaults, and Trauma",
++       "Assaults and T ..." ... [TRUNCATED] 
 
-> ggsave("outputs/figures/Figure 4.png", width = 14.5, height = 8, dpi = 300, bg = 'white')
-
-> # Close log file
-> sink()
-c('ESI \n1 or 2', 'ESI \n3, 4, or 5')) {
-+     row <- model_for_complaint(complaint, esi, 'ln_ED_LOS .... [TRUNCATED] 
-
-> results <- results %>%
-+   mutate(coef = as.numeric(coef),
-+          cse = as.numeric(cse),
-+          CI_lower = coef - 1.96 * cse,
-+          CI_ .... [TRUNCATED] 
-
-> results %>%
-+   filter(complaint != 'General/Other Symptoms') %>%
-+   mutate(
-+     outcome_var = case_when(
-+       outcome_var == 'ln_ED_LOS' ~ 'L .... [TRUNCATED] 
-
-> ggsave("outputs/figures/Figure 4.png", width = 14.5, height = 8, dpi = 300, bg = 'white')
-
-> # Close log file
-> sink()
-The following package(s) will be updated in the lockfile:
-
-# RSPM ----------------------------------------------------------
-- gridExtra   [2.3 -> *]
-
-
-- Lockfile written to "~/GitHub/batch-vs-sequence/renv.lock".
+> ggsave("outputs/figures/Figure 2.pdf", width = 16, height = 15.5, dpi = 300, bg = 'white')

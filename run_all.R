@@ -1,6 +1,6 @@
 #=========================================================================
 # Purpose: This script loads all necessary packages for the project and 
-#          runds all other scripts in the project. 
+#          runs all other scripts in the project. 
 #
 # Author: Jacob Jameson 
 #=========================================================================
@@ -13,7 +13,6 @@ library(caret)
 library(sandwich)
 library(xtable)
 library(lmtest)
-library(gtsummary)
 library(marginaleffects)
 library(scales)  # For percent_format
 library(stringr) # For str_wrap
@@ -21,7 +20,10 @@ library(ggeffects)
 library(pals)
 library(ggsci)
 library(ggthemes)
-
+library(texreg)
+library(fixest)
+library(pROC)
+library(stargazer)
 
 # Create log file
 sink("outputs/logs/log.txt", append = FALSE, split = TRUE)

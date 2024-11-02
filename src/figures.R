@@ -5,130 +5,102 @@
 
 ##########################################################################
 #=========================================================================
-# Table 1: Balance Table (Wald Test) across Physicians                   #
-                                                                         #
-# Table 1 reports the results of a Wald test, which was conducted to      #
-# assess the balance of chief complaints across physicians in our        #
-# dataset. We created chief complaint categories before analysis         #
-# by grouping similar presenting issues. Vital signs were categorized    #
-# as follows: tachycardia (pulse more significant than 100),             #
-# tachypnea (respiratory rate greater than 20),                          #
-# fever (temperature greater than 38^∘  C), and hypotension              #
-# (systolic blood pressure less than 90).  A balanced distribution       #
-# implies that complaints and severity are evenly distributed across     #
-# physicians, which we expect to be the case due to randomization.       #
-# The Wald F-statistic and p-value are reported. Robust standard errors  #
-# (type HC1) accounted for potential heteroscedasticity in the data.     #
+# S2A: Balance Table (Wald Test) across Physicians                       #
 #=========================================================================
 ##########################################################################
 
 patient_data <- data
 
-complaints <- unique(patient_data$CHIEF_COMPLAINT)
-
-# One-hot encoding for CHIEF_COMPLAINT
-dummy_encoder <- dummyVars(" ~ CHIEF_COMPLAINT", data = patient_data)
-one_hot_encoded_data <- data.frame(predict(dummy_encoder, newdata = patient_data))
-relevant_vars <- setdiff(names(one_hot_encoded_data), 'CHIEF_COMPLAINTDROP')
-
-# Add the one-hot encoded data to the main dataset
-patient_data <- cbind(patient_data, one_hot_encoded_data)
-
-patient_data$ESI1 <- ifelse(patient_data$ESI == 1, 1, 0)
-patient_data$ESI2 <- ifelse(patient_data$ESI == 2, 1, 0)
-patient_data$ESI3 <- ifelse(patient_data$ESI == 3, 1, 0)
-patient_data$ESI4 <- ifelse(patient_data$ESI == 4, 1, 0)
-patient_data$ESI5 <- ifelse(patient_data$ESI == 5, 1, 0)
-
-# Update the relevant variables list
-relevant_vars <- c(relevant_vars,  
-                   'ESI1', 
-                   'ESI2',
-                   'ESI3',
-                   'ESI4',
-                   'ESI5',
-                   "tachycardic", 
-                   "tachypneic", 
-                   "febrile",
-                   "hypotensive")
-
-
-# get column mean and sum for each variable
-patient_data %>%
-  select(relevant_vars) %>%
-  summarise(across(everything(), list(mean = mean, sum = sum))) %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") 
+create_dummy_variables <- function(data, categorical_var) {
+  dummy_encoder <- dummyVars(paste("~", categorical_var), data = data)
+  encoded_data <- data.frame(predict(dummy_encoder, newdata = data))
+  drop_col <- paste0(categorical_var, "DROP")
   
-# Initialize balance dataframe
-balance_stats <- data.frame(Df = numeric(), 
-                            F = numeric(),
-                            Pr_F = numeric(), 
-                            dummy_var = character())
+  list(
+    encoded_data = encoded_data,
+    relevant_vars = setdiff(names(encoded_data), drop_col)
+  )
+}
 
-p_values <- c()
+create_esi_dummies <- function(data) {
+  esi_vars <- paste0("ESI", 1:5)
+  for (i in 1:5) {
+    data[[esi_vars[i]]] <- as.integer(data$ESI == i)
+  }
+  list(data = data, new_vars = esi_vars)
+}
 
-# Loop through each variable and collect balance statistics
-for (dummy_var in relevant_vars) {
-  # Fit the baseline and extended models
-  baseline_model <- lm(as.formula(paste(dummy_var, '~ 1')), patient_data)
-  extended_model <- lm(as.formula(paste(dummy_var, '~ ED_PROVIDER')), patient_data)
+# Performs Wald test for balance checking across physicians
+# Returns test results and p-value for multiple comparison adjustment
+perform_wald_test <- function(data, var) {
+  baseline_model <- lm(as.formula(paste(var, "~ 1")), data)
+  extended_model <- lm(as.formula(paste(var, "~ ED_PROVIDER")), data)
   
-  # Perform the Wald test
-  wald_test_result <- lmtest::waldtest(
-    baseline_model, 
-    extended_model, 
+  wald_result <- waldtest(
+    baseline_model,
+    extended_model,
     vcov = vcovHC(extended_model, type = "HC1")
   )
   
-  # Convert the result to a data frame
-  temp_result <- data.frame(wald_test_result)[2, ]
+  result_row <- data.frame(wald_result)[2, ]
+  result_row$dummy_var <- var
   
-  # Add the variable name to the results
-  temp_result$dummy_var <- dummy_var
-  
-  # Extract the p-value and collect it
-  p_value <- temp_result$`Pr..F.`
-  p_values <- c(p_values, p_value)
-  
-  # Append the result to the balance_stats data frame
-  balance_stats <- rbind(balance_stats, temp_result)
+  list(result = result_row, p_value = result_row$"Pr..F.")
 }
 
-# Apply the Bonferroni adjustment to the collected p-values
-adjusted_p_values <- p.adjust(p_values, method = "bonferroni")
+generate_balance_table <- function(data, 
+                                   output_file,
+                                   clinical_vars = c("tachycardic", "tachypneic", 
+                                                     "febrile", "hypotensive")) {
+  # Generate dummy variables and combine relevant variables
+  complaint_encoding <- create_dummy_variables(data, "CHIEF_COMPLAINT")
+  data <- cbind(data, complaint_encoding$encoded_data)
+  
+  esi_result <- create_esi_dummies(data)
+  data <- esi_result$data
+  
+  relevant_vars <- c(complaint_encoding$relevant_vars,
+                     esi_result$new_vars,
+                     clinical_vars)
+  
+  # Perform Wald tests and collect results
+  balance_stats <- data.frame(Df = numeric(), F = numeric(),
+                              Pr_F = numeric(), dummy_var = character())
+  p_values <- c()
+  
+  for (var in relevant_vars) {
+    test_results <- perform_wald_test(data, var)
+    balance_stats <- rbind(balance_stats, test_results$result)
+    p_values <- c(p_values, test_results$p_value)
+  }
+  
+  balance_stats$adj_p_value <- p.adjust(p_values, method = "bonferroni")
+  balance_stats <- balance_stats[, c("dummy_var", "Df", "F", "Pr..F.", "adj_p_value")]
+  rownames(balance_stats) <- NULL
+  
+  # Generate output
+  sink(output_file)
+  
+  data %>%
+    select(all_of(relevant_vars)) %>%
+    summarise(across(everything(), list(mean = mean, sum = sum))) %>%
+    pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+    print(n = 100)
+  
+  print(balance_stats)
+  sink()
+  
+  invisible(list(balance_stats = balance_stats))
+}
 
-# Add the adjusted p-values to the balance_stats data frame
-balance_stats$adj_p_value <- adjusted_p_values
-
-# Optional: Rearrange or select specific columns for clarity
-balance_stats <- balance_stats[, c("dummy_var", "Df", "F", "Pr..F.", "adj_p_value")]
-row.names(balance_stats) <- NULL
-
-# Save the results to a .txt file
-sink("outputs/tables/Table 1.txt")
-
-patient_data %>%
-  select(relevant_vars) %>%
-  summarise(across(everything(), list(mean = mean, sum = sum))) %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
-  print(n=100)
-
-
-balance_stats
-sink()
-
-
-
+results <- generate_balance_table(
+  data = patient_data,
+  output_file = "outputs/tables/S2A.txt"
+)
 
 ##########################################################################
 #=========================================================================
-# Figure 2: Variation in Physician Batch Rate by Chief Complaint         #
-#                                                                        #
-# Figure 2 illuminates the marked differences among physicians in their
-# propensity to batch order imaging tests. The 24 physicians are 
-# represented with points, revealing that specific complaint areas 
-# have more variance than others regarding differing batch rates 
-# among physicians              
+# Figure 1: Variation in Physician Batch Rate by Chief Complaint         #
 #=========================================================================
 
 data_for_plot <- data
@@ -156,7 +128,7 @@ ggplot(data = data_for_plot, aes(x = reorder(CHIEF_COMPLAINT, -batch_rate),
     axis.text = element_text(color = 'black', size = 20),  
     plot.title = element_text(size = 22, face = 'bold', hjust = 0.5, color = 'black'),
     plot.margin = margin(t = 1, r = 0.2, b = 0.2, l = 0.2, unit = "cm"),
-    panel.grid.major = element_line(color = 'black', size = 0.3),
+    panel.grid.major = element_line(color = 'grey20', size = 0.3),
     panel.grid.minor = element_blank(),  
     legend.position = 'none',
     axis.title = element_text(size = 20, color = 'black'),  
@@ -165,20 +137,20 @@ ggplot(data = data_for_plot, aes(x = reorder(CHIEF_COMPLAINT, -batch_rate),
     axis.line = element_line(colour = "black")
   ) + 
   labs(
-    title = "Physician Variation in Batching by Complaint\n",
+    title = "",
     y = "\nPhysician Batch Rates", x = "Chief Complaint"
   ) +
   scale_y_continuous(labels = percent_format(scale = 100), limits = c(-0.01, .5)) +
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 
-ggsave("outputs/figures/Figure 1.png", 
-       width = 13, height = 15, dpi = 300, bg = 'white')
+ggsave("outputs/figures/Figure 1.pdf", 
+       width = 15, height = 13, dpi = 300, bg = 'white')
 
 
 ##########################################################################
 #=========================================================================
-# Figure 2: Relationship between Batch Tendency and Batching             #
+# S2A: Relationship between Batch Tendency and Batching                  #
 #=========================================================================
 ##########################################################################
 
@@ -218,12 +190,12 @@ data.p %>%
                    score of 2 is 4x as likely to batch order imaging tests at a 
                    given patient encounter compared to a physician 
                    with a batch tendency score of -2",  42),
-           size = 5.5, color = "black") +
+           size = 5.75, color = "black") +
   annotate("segment", x = -1, xend = -2, y = 0.035, yend = 0.012, linetype = "dashed",
            size = 0.5, color = "black", arrow = arrow(length = unit(0.2, "cm"))) +
   annotate("segment", x = 0, xend = 1.95, y = 0.055, yend = 0.053, linetype = "dashed",
            size = 0.5, color = "black", arrow = arrow(length = unit(0.2, "cm"))) +
-  geom_curve(aes(x = 1, y = 0.0125, xend = 0.0, yend = 0.025), 
+  geom_curve(aes(x = 0.9, y = 0.0125, xend = 0.0, yend = 0.025), 
              curvature = -0.2, arrow = arrow(type = "closed", length = unit(0.2, "cm")),
              color = "black", size = 0.5) +
   annotate("text", x = 1.55, y = 0.0125, 
@@ -246,13 +218,13 @@ data.p %>%
   ) +
   labs(x = '\nBatch Tendency',
        y = 'Predicted Probability of Batch Ordering \n', 
-       title = 'Impact of Physician Batch Tendency \non Batch Ordering Probability')
+       title = '')
 
-ggsave("outputs/figures/Figure 2.png", width = 11.5, height = 9, bg = 'white')
+ggsave("outputs/figures/S2A.pdf", width = 10.5, height = 8, bg = 'white')
 
 ##########################################################################
 #=========================================================================
-# Figure 3: Density plots of LOS                                         #
+# S3A: Density plots of LOS                                              #
 #=========================================================================
 ##########################################################################
 
@@ -297,107 +269,107 @@ data_for_plot %>%
     axis.line = element_line(colour = "black")
   ) 
 
-ggsave("outputs/figures/Figure 3.png", width = 11.5, height = 7, bg = 'white')
+ggsave("outputs/figures/S3A.pdf", width = 11.5, height = 7, bg = 'white')
 
 ################################################################################
 #===============================================================================
-# Figure 4: Relationship between Batch Tendency and LOS                        #
+# Table 1: Relationship between Batch Tendency and LOS                        #
 #===============================================================================
 ################################################################################
-sink("outputs/tables/Main Results.txt")
 
-library(texreg)
+# Helper function to run regression models with different specifications
+run_regression_models <- function(dependent_var, data, 
+                                  base_formula = "~ batch.tendency",
+                                  additional_controls = list(
+                                    c("patients_in_hospital"),
+                                    c("patients_in_hospital", "hypotensive", "tachycardic", 
+                                      "tachypneic", "febrile"))) {
+  
+  # Base fixed effects and clustering
+  base_fe <- "dayofweekt + month_of_year"
+  cluster <- "ED_PROVIDER"
+  
+  # Function to construct formula
+  build_formula <- function(dep_var, predictors, fe) {
+    as.formula(paste(dep_var, "~", 
+                     paste(predictors, collapse = " + "), "|",
+                     fe, "|0|", cluster))
+  }
+  
+  # Run models
+  models <- list()
+  
+  # Model a (base)
+  models[[1]] <- felm(build_formula(dependent_var, "batch.tendency", base_fe), 
+                      data = data)
+  
+  # Model b (+ basic controls)
+  predictors_b <- c("batch.tendency", additional_controls[[1]], 
+                    "complaint_esi", "LAB_PERF")
+  models[[2]] <- felm(build_formula(dependent_var, paste(predictors_b, collapse = " + "), 
+                                    base_fe), data = data)
+  
+  # Model c (+ clinical controls)
+  predictors_c <- c(predictors_b, additional_controls[[2]])
+  models[[3]] <- felm(build_formula(dependent_var, paste(predictors_c, collapse = " + "), 
+                                    base_fe), data = data)
+  
+  return(models)
+}
 
-# Run the main regression models -----------------------------------------------
-model.1a <- felm(ln_ED_LOS ~ batch.tendency  | 
-                   dayofweekt + month_of_year |0|
-                   ED_PROVIDER, data = data)
+# Function to generate regression tables
+generate_tables <- function(models, outcome_name, output_file, 
+                            omit_vars = "patients_in_hospital") {
+  # Screen output
+  screenreg(models,
+            custom.model.names = rep(outcome_name, 3),
+            ci.force = TRUE,
+            ci.force.level = 0.95,
+            omit.coef = omit_vars,
+            digits = 3,
+            single.row = TRUE,
+            include.rsquared = TRUE,
+            include.nobs = TRUE)
+  
+  # Stargazer output
+  stargazer(models,
+            type = 'text',
+            ci.level = 0.95,
+            single.row = TRUE,
+            omit = omit_vars,
+            digits = 3)
+}
 
-model.1b <- felm(ln_ED_LOS ~ batch.tendency + patients_in_hospital | 
-                   dayofweekt + month_of_year + complaint_esi + LAB_PERF |0|
-                   ED_PROVIDER, data = data)
+# Main analysis
+main_analysis <- function(data, output_file) {
+  sink(output_file)
+  
+  # 1. LOS Analysis
+  los_models <- run_regression_models("ln_ED_LOS", data)
+  generate_tables(los_models, "Log ED LOS", output_file)
+  
+  # 2. Return Analysis
+  # Note: Additional control for disposition
+  rtn_models <- run_regression_models("RTN_72_HR_ADMIT", data,
+                                      additional_controls = list(
+                                        c("patients_in_hospital"),
+                                        c("patients_in_hospital", "hypotensive", 
+                                          "tachycardic", "tachypneic", "febrile", "dispo")))
+  generate_tables(rtn_models, "RTN 72HR ADMIT", output_file)
+  
+  # 3. Imaging Analysis
+  img_models <- run_regression_models("imgTests", data)
+  generate_tables(img_models, "N Images", output_file)
+  
+  sink()
+}
 
-model.1c <- felm(ln_ED_LOS ~ batch.tendency + patients_in_hospital | 
-                   dayofweekt + month_of_year + complaint_esi + LAB_PERF + 
-                   hypotensive + tachycardic + tachypneic + febrile |0|
-                   ED_PROVIDER, data = data)
-
-screenreg(list(model.1a, model.1b, model.1c), 
-          custom.model.names = c('Log ED LOS', 'Log ED LOS', 'Log ED LOS'),
-          ci.force = TRUE, ci.force.level = 0.95, 
-          omit.coef = 'patients_in_hospital',
-          digits = 3, single.row = TRUE, 
-          include.rsquared = TRUE,
-          include.nobs = T)
-
-stargazer::stargazer(model.1a, model.1b, model.1c, type = 'text', 
-                      ci.level = 0.95, single.row = TRUE, 
-                      omit = 'patients_in_hospital', 
-                      digits = 3)
-
-
-model.2a <- felm(RTN_72_HR_ADMIT ~ batch.tendency | 
-                   dayofweekt + month_of_year |0|
-                   ED_PROVIDER, data = data)
-
-model.2b <- felm(RTN_72_HR_ADMIT ~ batch.tendency + patients_in_hospital | 
-                   dayofweekt + month_of_year + complaint_esi + LAB_PERF |0|
-                   ED_PROVIDER, data = data)
-
-model.2c <- felm(RTN_72_HR_ADMIT ~ batch.tendency + patients_in_hospital | 
-                   dayofweekt + month_of_year + complaint_esi + LAB_PERF + 
-                   hypotensive + tachycardic + tachypneic + febrile + dispo |0|
-                   ED_PROVIDER, data = data)
-
-screenreg(list(model.2a, model.2b, model.2c), 
-          custom.model.names = c('RTN 72HR ADMIT', 'RTN 72HR ADMIT', 
-                                 'RTN 72HR ADMIT'),
-          ci.force = TRUE, ci.force.level = 0.95, 
-          omit.coef = 'patients_in_hospital',
-          digits = 3, single.row = TRUE, 
-          include.rsquared = TRUE,
-          include.nobs = T)
-
-stargazer::stargazer(model.2a, model.2b, model.2c, type = 'text', 
-                     ci.level = 0.95, single.row = TRUE, 
-                     omit = 'patients_in_hospital', 
-                     digits = 3)
-
-
-model.3a <- felm(imgTests ~ batch.tendency | 
-                   dayofweekt + month_of_year |0|
-                   ED_PROVIDER, data = data)
-
-model.3b <- felm(imgTests ~ batch.tendency + patients_in_hospital | 
-                   dayofweekt + month_of_year + complaint_esi + LAB_PERF |0|
-                   ED_PROVIDER, data = data)
-
-model.3c <- felm(imgTests ~ batch.tendency + patients_in_hospital | 
-                   dayofweekt + month_of_year + complaint_esi + LAB_PERF + 
-                   hypotensive + tachycardic + tachypneic + febrile |0|
-                   ED_PROVIDER, data = data)
-
-
-screenreg(list(model.3a, model.3b, model.3c), 
-          custom.model.names = c('N Images', 'N Images', 
-                                 'N Images'),
-          ci.force = TRUE, ci.force.level = 0.95, 
-          omit.coef = 'patients_in_hospital',
-          digits = 3, single.row = TRUE, 
-          include.rsquared = TRUE,
-          include.nobs = T)
-
-stargazer::stargazer(model.3a, model.3b, model.3c, type = 'text', 
-                     ci.level = 0.95, single.row = TRUE, 
-                     omit = 'patients_in_hospital', 
-                     digits = 3)
-
-sink()
-
+# Run the analysis
+main_analysis(data, "outputs/tables/Table 1.txt")
 
 ################################################################################
 #===============================================================================
-# Figure 5: Forest plot                                                        #
+# Figure 2: Forest plot                                                        #
 #===============================================================================
 ################################################################################
 
@@ -483,8 +455,7 @@ results %>%
     x = "Complaint",
     y = "\nCoefficient (Effect Size)",
     color = "Significance",
-    linetype = "CI Type",
-    title = "Regression Coefficients with Confidence Intervals for \nComplaint-Acuity Subgroup Regressions\n"
+    linetype = "CI Type"
   ) +
   theme_minimal(base_size = 18) +  
   theme(
@@ -507,4 +478,4 @@ results %>%
     legend.background = element_rect(colour = "black")
   ) 
 
-ggsave("outputs/figures/Figure 4.png", width = 16, height = 14, dpi = 300, bg = 'white')
+ggsave("outputs/figures/Figure 2.pdf", width = 16, height = 15.5, dpi = 300, bg = 'white')
